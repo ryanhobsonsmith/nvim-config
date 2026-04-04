@@ -14,13 +14,41 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Build spec with conditional extras based on available tooling.
+-- This lets the same config work across machines with different dev environments.
+-- Order matters: lazyvim.plugins -> lazyvim.plugins.extras -> user plugins
+local spec = {
+  { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+  -- Always-on extras (no external tooling required)
+  { import = "lazyvim.plugins.extras.coding.mini-surround" },
+  { import = "lazyvim.plugins.extras.lang.json" },
+  { import = "lazyvim.plugins.extras.lang.markdown" },
+  { import = "lazyvim.plugins.extras.lang.yaml" },
+}
+
+if vim.fn.executable("go") == 1 then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.go" })
+end
+if vim.fn.executable("python3") == 1 then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.python" })
+end
+if vim.fn.executable("node") == 1 then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.typescript" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.tailwind" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot" })
+end
+if vim.fn.executable("docker") == 1 then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.docker" })
+end
+if vim.fn.executable("psql") == 1 or vim.fn.executable("mysql") == 1 or vim.fn.executable("sqlite3") == 1 then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.sql" })
+end
+
+-- User plugins must come last to override defaults
+table.insert(spec, { import = "plugins" })
+
 require("lazy").setup({
-  spec = {
-    -- add LazyVim and import its plugins
-    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
-    -- import/override with your plugins
-    { import = "plugins" },
-  },
+  spec = spec,
   defaults = {
     -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
     -- If you know what you're doing, you can set this to `true` to have all your custom plugins lazy-loaded by default.
