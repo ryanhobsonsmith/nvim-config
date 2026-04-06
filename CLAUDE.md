@@ -42,6 +42,22 @@ Always check the latest Neovim and LazyVim documentation before making changes â
 - **Neovim**: library ID `/websites/neovim_io_doc`
 - **nvim-lspconfig**: library ID `/neovim/nvim-lspconfig`
 
+## Live-Testing Changes via Tmux
+
+When the user identifies a tmux pane running Neovim, you can send commands directly using the tmux MCP tools (e.g., `mcp__tmux__execute-command` with `rawMode=true`). This is useful for:
+- Testing highlight color changes live with `:lua vim.api.nvim_set_hl(0, "Group", { fg = "#hex" })` without clearing cache/restarting
+- Running `:Inspect` or other Neovim commands
+
+The user's Neovim is typically in the `nvim` tmux session. Ask which pane if unclear.
+
+## Colorscheme Notes
+
+- Using **onedarkpro.nvim** with the `onedark` colorscheme
+- onedarkpro **caches compiled highlights** â€” changes to opts require clearing the cache (`nvclear` alias) and restarting Neovim
+- For fast iteration, use `vim.api.nvim_set_hl()` via tmux to test colors live, then bake final values into the config
+- Custom highlights (Tree-sitter and LSP semantic tokens) go in the `opts.highlights` table
+- Use `:Inspect!` on a token to see which highlight group is winning (highest priority wins)
+
 ## Key Conventions
 
 - Plugin specs follow LazyVim patterns: use `opts` tables/functions to merge with or override defaults. See `lua/plugins/example.lua` for reference patterns.
