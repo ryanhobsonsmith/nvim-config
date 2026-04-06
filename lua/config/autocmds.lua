@@ -5,8 +5,15 @@
 -- with `vim.api.nvim_create_autocmd`
 --
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
--- Disable spell checking for markdown (LazyVim enables it by default)
+-- Re-create lazyvim_wrap_spell: keep wrap but disable spell for markdown
 vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
+vim.api.nvim_create_autocmd("FileType", {
+  group = vim.api.nvim_create_augroup("lazyvim_wrap_spell", { clear = true }),
+  pattern = { "markdown", "gitcommit" },
+  callback = function()
+    vim.opt_local.wrap = true
+  end,
+})
 
 -- Also check for external file changes on CursorHold (when cursor is idle)
 vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
