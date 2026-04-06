@@ -25,6 +25,16 @@ vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
   end,
 })
 
+-- Autosave on focus loss / buffer leave
+vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
+  group = vim.api.nvim_create_augroup("autosave_on_focus_lost", { clear = true }),
+  callback = function()
+    if vim.bo.modified and not vim.bo.readonly and vim.bo.buftype == "" and vim.fn.expand("%") ~= "" then
+      vim.cmd("silent! write")
+    end
+  end,
+})
+
 -- Disable diagnostics for markdown files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown" },
