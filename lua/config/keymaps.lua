@@ -4,3 +4,4 @@
 local map = vim.keymap.set
 map({ "n", "v", "o" }, "B", "^", { desc = "First non-blank character" })
 map({ "n", "v", "o" }, "E", "$", { desc = "End of line" })
+map("n", "ZZ", "<cmd>wa<cr><cmd>qa<cr>", { desc = "Write all and quit all" })
