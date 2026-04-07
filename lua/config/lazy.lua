@@ -34,6 +34,7 @@ if vim.fn.executable("python3") == 1 then
 end
 if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.typescript" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.typescript.biome" })
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.tailwind" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot" })
 end
