@@ -68,6 +68,13 @@ The user's Neovim is typically in the `nvim` tmux session. Ask which pane if unc
 - Custom highlights (Tree-sitter and LSP semantic tokens) go in the `opts.highlights` table
 - Use `:Inspect!` on a token to see which highlight group is winning (highest priority wins)
 
+## Pending Follow-ups
+
+- **codediff.nvim folding** (`lua/plugins/diffview.lua`): We swapped diffview for
+  codediff, but codediff has no diff-aware folding (collapsing unchanged regions).
+  Track [esmuellert/codediff.nvim#344](https://github.com/esmuellert/codediff.nvim/pull/344).
+  When merged, enable the new "compact mode" option in the codediff plugin spec.
+
 ## Key Conventions
 
 - Plugin specs follow LazyVim patterns: use `opts` tables/functions to merge with or override defaults. See `lua/plugins/example.lua` for reference patterns.
