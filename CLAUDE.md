@@ -25,7 +25,17 @@ This is a Neovim configuration built on [LazyVim](https://lazyvim.github.io/) (v
 
 ## Enabled LazyVim Extras
 
-Configured in `lazyvim.json`: copilot, docker, go, json, markdown, python, sql, tailwind, typescript, yaml.
+Extras are configured **programmatically in `lua/config/lazy.lua`**, NOT in `lazyvim.json` (that file is stale and unused — `:LazyExtras` will not reflect reality). The spec is built conditionally so the same config works across machines with different tooling installed:
+
+- **Always-on** (no external tooling required): `coding.mini-surround`, `lang.json`, `lang.markdown`, `lang.yaml`
+- **Conditional on `vim.fn.executable()` checks**:
+  - `go` → `lang.go`
+  - `python3` → `lang.python`
+  - `node` → `lang.typescript`, `lang.tailwind`, `ai.copilot`
+  - `docker` → `lang.docker`
+  - `psql` / `mysql` / `sqlite3` → `lang.sql`
+
+When adding a new extra, add it to the appropriate block in `lua/config/lazy.lua`. Gate it with `vim.fn.executable(...)` if it depends on external tooling. Do not edit `lazyvim.json`.
 
 ## Formatting
 
