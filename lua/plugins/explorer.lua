@@ -3,7 +3,7 @@ return {
   opts = {
     picker = {
       hidden = true,
-      ignored = true,
+      ignored = false,
       win = {
         input = {
           keys = {
