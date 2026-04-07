@@ -37,7 +37,7 @@ return {
     },
   },
   {
-    "sindrets/diffview.nvim",
+    "dlyongemallo/diffview.nvim",
     cmd = { "DiffviewOpen", "DiffviewFileHistory" },
     keys = {
       { "<leader>gD", open_or_focus("DiffviewOpen"), desc = "Diffview Open" },
@@ -48,6 +48,7 @@ return {
     },
     opts = {
       enhanced_diff_hl = true,
+      clean_up_buffers = true,
       hooks = {
         -- Open all folds by default (unchanged regions stay visible).
         -- foldlevel is window-local, so set it on win-enter, not buf-read.
