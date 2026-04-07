@@ -7,15 +7,17 @@
 -- the same buffer — each project uses whichever it has configured.
 vim.g.lazyvim_prettier_needs_config = true
 
--- Use OSC 52 for clipboard so yank works through tmux to macOS system clipboard
+-- Yank via OSC 52 (works through tmux + over SSH), paste via pbpaste locally.
+-- OSC 52 paste hangs waiting for a terminal response that ghostty/tmux don't
+-- reliably provide, so we use pbpaste for paste instead.
 vim.g.clipboard = {
-  name = "OSC 52",
+  name = "OSC 52 + pbpaste",
   copy = {
     ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
     ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
   },
   paste = {
-    ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
-    ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+    ["+"] = { "pbpaste" },
+    ["*"] = { "pbpaste" },
   },
 }
