@@ -4,6 +4,13 @@ return {
     opts = {
       servers = {
         vtsls = {
+          keys = {
+            {
+              "K",
+              function() require("ts_expand_hover").hover() end,
+              desc = "TypeScript expandable hover",
+            },
+          },
           settings = {
             typescript = {
               tsserver = {
@@ -13,6 +20,13 @@ return {
           },
         },
       },
+    },
+  },
+  {
+    "nemanjamalesija/ts-expand-hover.nvim",
+    ft = { "typescript", "typescriptreact" },
+    opts = {
+      keymaps = { hover = false },
     },
   },
 }
