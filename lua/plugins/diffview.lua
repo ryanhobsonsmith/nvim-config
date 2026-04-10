@@ -12,7 +12,7 @@ return {
     cmd = "CodeDiff",
     keys = {
       { "<leader>gD", "<cmd>CodeDiff<cr>", desc = "CodeDiff: Working Tree" },
-      { "<leader>gF", "<cmd>CodeDiff history<cr>", desc = "CodeDiff: File History" },
+      { "<leader>gH", "<cmd>CodeDiff history<cr>", desc = "CodeDiff: File History" },
       { "<leader>gQ", "<cmd>tabclose<cr>", desc = "CodeDiff: Close" },
     },
     opts = {
@@ -25,6 +25,10 @@ return {
         position = "left",
         width = 40,
         view_mode = "tree",
+      },
+      history = {
+        position = "left",
+        width = 40,
       },
       keymaps = {
         view = {
