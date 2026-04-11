@@ -14,7 +14,7 @@ return {
       sources = {
         explorer = {
           hidden = true,
-          ignored = true,
+          ignored = false,
           actions = {
             yank_relative_path = function(_, item)
               if item and item.file then
