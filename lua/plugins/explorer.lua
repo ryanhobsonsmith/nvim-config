@@ -13,6 +13,7 @@ return {
       },
       sources = {
         explorer = {
+          focus = "list",
           hidden = true,
           ignored = false,
           actions = {
@@ -29,6 +30,16 @@ return {
                 vim.notify("Copied: " .. item.file)
               end
             end,
+            oil_open_here = function(picker, item)
+              picker:close()
+              if item and item.file then
+                require("oil").toggle_float(item.file)
+              end
+            end,
+            oil_open_root = function(picker)
+              picker:close()
+              require("oil").toggle_float(vim.fn.getcwd())
+            end,
           },
           win = {
             list = {
@@ -39,6 +50,8 @@ return {
                 ["I"] = false,
                 ["gyp"] = "yank_relative_path",
                 ["gyP"] = "yank_absolute_path",
+                ["<leader>o"] = "oil_open_here",
+                ["<leader>O"] = "oil_open_root",
               },
             },
           },
