@@ -21,6 +21,7 @@ local spec = {
   { "LazyVim/LazyVim", import = "lazyvim.plugins" },
   -- Always-on extras (no external tooling required)
   { import = "lazyvim.plugins.extras.coding.mini-surround" },
+  { import = "lazyvim.plugins.extras.ui.treesitter-context" },
   { import = "lazyvim.plugins.extras.lang.json" },
   { import = "lazyvim.plugins.extras.lang.markdown" },
   { import = "lazyvim.plugins.extras.lang.yaml" },
@@ -37,6 +38,7 @@ if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.typescript.biome" })
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.tailwind" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.ai.avante" })
 end
 if vim.fn.executable("docker") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.docker" })

@@ -17,3 +17,21 @@ map("n", "gyP", function()
   vim.fn.setreg("+", path)
   vim.notify("Copied: " .. path)
 end, { desc = "Yank absolute path" })
+
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  callback = function()
+    Snacks.toggle
+      .new({
+        id = "diagnostic_virtual_text",
+        name = "Diagnostic Virtual Text",
+        get = function()
+          return vim.diagnostic.config().virtual_text ~= false
+        end,
+        set = function(state)
+          vim.diagnostic.config({ virtual_text = state })
+        end,
+      })
+      :map("<leader>uv")
+  end,
+})

@@ -27,11 +27,11 @@ This is a Neovim configuration built on [LazyVim](https://lazyvim.github.io/) (v
 
 Extras are configured **programmatically in `lua/config/lazy.lua`**, NOT in `lazyvim.json` (that file is stale and unused — `:LazyExtras` will not reflect reality). The spec is built conditionally so the same config works across machines with different tooling installed:
 
-- **Always-on** (no external tooling required): `coding.mini-surround`, `lang.json`, `lang.markdown`, `lang.yaml`
+- **Always-on** (no external tooling required): `coding.mini-surround`, `ui.treesitter-context`, `lang.json`, `lang.markdown`, `lang.yaml`
 - **Conditional on `vim.fn.executable()` checks**:
   - `go` → `lang.go`
   - `python3` → `lang.python`
-  - `node` → `lang.typescript`, `lang.tailwind`, `ai.copilot`
+  - `node` → `lang.typescript`, `lang.tailwind`, `ai.copilot`, `ai.avante`
   - `docker` → `lang.docker`
   - `psql` / `mysql` / `sqlite3` → `lang.sql`
 
@@ -80,3 +80,42 @@ The user's Neovim is typically in the `nvim` tmux session. Ask which pane if unc
 - Plugin specs follow LazyVim patterns: use `opts` tables/functions to merge with or override defaults. See `lua/plugins/example.lua` for reference patterns.
 - LazyVim provides default options, keymaps, and autocmds. Customizations in `lua/config/` extend or override those defaults — check LazyVim source before duplicating behavior.
 - Default autocommand groups from LazyVim are prefixed with `lazyvim_` and can be removed with `vim.api.nvim_del_augroup_by_name()`.
+
+## Config Gotchas
+
+### Diagnostic config: override at the LSP plugin level, not via `vim.diagnostic.config()`
+
+LazyVim sets `vim.diagnostic.config` inside `nvim-lspconfig`'s `config` function, which runs *after* `VeryLazy`. Any `vim.diagnostic.config({...})` call in `keymaps.lua` or `autocmds.lua` gets clobbered once LSP loads. To change defaults like `virtual_text`, override `opts.diagnostics.*` in `lua/plugins/lsp.lua` — that's the source of truth. Runtime toggles (e.g. Snacks toggles that flip state on demand) still work fine since they fire after setup.
+
+### `Snacks` globals aren't ready when `keymaps.lua` loads
+
+`Snacks.toggle` and other `Snacks.*` globals are nil when `lua/config/keymaps.lua` first executes. If a keymap needs `Snacks`, wrap the definition in a `User VeryLazy` autocmd so it runs after Snacks initializes. See the `<leader>uv` toggle in `keymaps.lua` for the pattern.
+
+### Disabling lazy-loaded plugins on startup
+
+For plugins that lazy-load on events (e.g. `copilot.lua` loads on `BufReadPost`), a `User LazyVimStarted` autocmd that calls the plugin's disable command is unreliable — if you open Neovim without a file (dashboard), the plugin isn't loaded yet and its user commands don't exist. Use a `config` hook that calls setup and then the disable API directly:
+
+```lua
+config = function(_, opts)
+  require("copilot").setup(opts)
+  require("copilot.command").disable()
+end,
+```
+
+When overriding `config`, remember LazyVim's default config for most plugins is just `require(main).setup(opts)` — so you need to call setup yourself.
+
+### `opts = function()` must return the opts table
+
+Returning nothing from an `opts` function wipes out merged defaults from other specs (e.g. LazyVim extras). Always `return opts` (after mutation) when using the function form.
+
+## AI Tooling
+
+Three AI assistants coexist with distinct keymap prefixes to avoid collisions:
+
+- **Copilot** (`lua/plugins/copilot.lua`) — disabled at startup; `:Copilot enable` to turn on. Tab-completion agent, not chat.
+- **Avante** (`lua/plugins/avante.lua`, `<leader>a` prefix) — Cursor-style inline edits and sidebar chat. Configured providers: `copilot` (default) and `lmstudio` (OpenAI-compatible at `http://127.0.0.1:1234/v1`). Switch with `:AvanteSwitchProvider`. Each provider has a hardcoded default model; override via `providers.<name>.model`. Note: Copilot's "Auto" model is VS Code/JetBrains-only — not exposed to third-party clients.
+- **Claude Code** (`lua/plugins/claudecode.lua`, `<leader>C` prefix) — `coder/claudecode.nvim` (community plugin, implements Claude Code's IDE protocol; Anthropic has no first-party Neovim plugin).
+
+### render-markdown for AI sidebars
+
+`render-markdown.nvim` only renders filetypes in its `file_types` table (defaults to `{"markdown"}`). Add AI sidebar filetypes (e.g. `"Avante"`) to get headings, lists, and syntax-highlighted code blocks. Code block highlighting requires the target language's Tree-sitter parser installed (`:TSInstall <lang>`).

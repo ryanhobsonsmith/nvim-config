@@ -252,6 +252,11 @@ return {
     opts = {
       scroll = { enabled = false },
       picker = {
+        layout = {
+          preset = function()
+            return vim.o.columns >= 160 and "default" or "vertical"
+          end,
+        },
         sources = picker_sources,
       },
     },

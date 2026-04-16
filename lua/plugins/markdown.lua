@@ -9,11 +9,10 @@ return {
     },
   },
 
-  -- Disable render-markdown by default (toggle with :RenderMarkdown toggle)
   {
     "MeanderingProgrammer/render-markdown.nvim",
     opts = {
-      enabled = false,
+      file_types = { "markdown", "Avante" },
     },
   },
 }
