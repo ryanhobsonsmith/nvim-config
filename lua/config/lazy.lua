@@ -39,6 +39,8 @@ if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.tailwind" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.avante" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.test.core" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.dap.core" })
 end
 if vim.fn.executable("docker") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.docker" })
