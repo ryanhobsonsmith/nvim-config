@@ -7,17 +7,30 @@
 -- the same buffer — each project uses whichever it has configured.
 vim.g.lazyvim_prettier_needs_config = true
 
--- Yank via OSC 52 (works through tmux + over SSH), paste via pbpaste locally.
--- OSC 52 paste hangs waiting for a terminal response that ghostty/tmux don't
--- reliably provide, so we use pbpaste for paste instead.
-vim.g.clipboard = {
-  name = "OSC 52 + pbpaste",
-  copy = {
-    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
-    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
-  },
-  paste = {
-    ["+"] = { "pbpaste" },
-    ["*"] = { "pbpaste" },
-  },
-}
+-- Branch on SSH_CONNECTION: pbcopy/pbpaste locally (bypasses the terminal
+-- escape chain entirely — reliable in tmux popups and nested panes), OSC 52
+-- over SSH (the only path that can reach the local clipboard from a remote
+-- host). See CLAUDE.md "Clipboard provider" for the full rationale.
+vim.g.clipboard = vim.env.SSH_CONNECTION
+    and {
+      name = "OSC 52 (remote)",
+      copy = {
+        ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+        ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+      },
+      paste = {
+        ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+        ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+      },
+    }
+  or {
+    name = "pbcopy/pbpaste (local)",
+    copy = {
+      ["+"] = { "pbcopy" },
+      ["*"] = { "pbcopy" },
+    },
+    paste = {
+      ["+"] = { "pbpaste" },
+      ["*"] = { "pbpaste" },
+    },
+  }

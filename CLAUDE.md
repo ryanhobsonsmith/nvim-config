@@ -108,6 +108,30 @@ When overriding `config`, remember LazyVim's default config for most plugins is 
 
 Returning nothing from an `opts` function wipes out merged defaults from other specs (e.g. LazyVim extras). Always `return opts` (after mutation) when using the function form.
 
+### Clipboard provider
+
+Configured in `lua/config/options.lua`, branched on `vim.env.SSH_CONNECTION`:
+
+- **Local**: `pbcopy` / `pbpaste` for both `+` and `*`.
+- **Remote (SSH)**: OSC 52 for both copy and paste via `vim.ui.clipboard.osc52`.
+
+**Why branch instead of a single provider:**
+
+LazyVim sets `clipboard=unnamedplus`, so every `y`/`d`/`p` goes through the `+` register — the provider runs on every cursor-adjacent edit, not just explicit `"+y`/`"+p`. That makes the provider's reliability a hot path.
+
+The previous config was asymmetric: OSC 52 copy + `pbpaste` paste. OSC 52 copy travels nvim → tmux → outer terminal → system clipboard via an escape sequence; `pbpaste` reads the macOS clipboard directly. When any link in the escape chain drops the sequence (notably tmux `display-popup`, which runs in a separate client context and relays OSC 52 less reliably than regular panes), copy silently no-ops while paste still reads the real clipboard. Result: `dd` then `p` pastes stale clipboard content instead of the just-yanked line.
+
+**Why this split works:**
+
+- Locally, `pbcopy`/`pbpaste` bypass the terminal entirely — popups, nested tmux, ghostty quirks all become irrelevant. Both directions hit the same macOS pasteboard.
+- Over SSH, `pbcopy`/`pbpaste` would run on the remote host and touch the wrong clipboard (or not exist). OSC 52 is the only mechanism that can traverse the SSH pipe back to the local terminal. Using it for both directions keeps copy and paste symmetric — whatever the escape chain delivers for copy is what paste queries for.
+
+**Caveats:**
+
+- The branch is evaluated once at nvim startup. Reconnecting tmux from local to SSH (or vice versa) won't flip the provider until nvim is restarted. In practice: fresh nvim after attaching.
+- OSC 52 paste requires terminal OSC 52 *read* support. Ghostty supports it; tmux 3.4+ relays it. Older tmux may hang the paste query — if that becomes an issue, drop the `paste` branch on the SSH side and rely on terminal paste (Cmd+V) for bringing outside text into remote nvim.
+- Nested SSH hops need OSC 52 pass-through at each layer.
+
 ## AI Tooling
 
 Three AI assistants coexist with distinct keymap prefixes to avoid collisions:
