@@ -18,20 +18,16 @@ map("n", "gyP", function()
   vim.notify("Copied: " .. path)
 end, { desc = "Yank absolute path" })
 
-vim.api.nvim_create_autocmd("User", {
-  pattern = "VeryLazy",
-  callback = function()
-    Snacks.toggle
-      .new({
-        id = "diagnostic_virtual_text",
-        name = "Diagnostic Virtual Text",
-        get = function()
-          return vim.diagnostic.config().virtual_text ~= false
-        end,
-        set = function(state)
-          vim.diagnostic.config({ virtual_text = state })
-        end,
-      })
-      :map("<leader>uv")
-  end,
-})
+-- Cycle diagnostic virtual_lines: off → current line only → all
+local diag_states = {
+  { virtual_lines = false },
+  { virtual_lines = { current_line = true } },
+  { virtual_lines = true },
+}
+local diag_labels = { "off", "current line", "all" }
+local diag_idx = 2
+map("n", "<leader>uv", function()
+  diag_idx = diag_idx % #diag_states + 1
+  vim.diagnostic.config(diag_states[diag_idx])
+  vim.notify("Diagnostic virtual lines: " .. diag_labels[diag_idx])
+end, { desc = "Cycle diagnostic virtual lines" })
