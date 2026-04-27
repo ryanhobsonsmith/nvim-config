@@ -42,3 +42,26 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.diagnostic.enable(false, { bufnr = 0 })
   end,
 })
+
+-- Make macro recording visually obvious: switch to a red block cursor while recording.
+-- Neovim's default `guicursor` doesn't reference the `Cursor` highlight group,
+-- so we swap `guicursor` itself to point at a dedicated group.
+vim.api.nvim_set_hl(0, "MacroRecordingCursor", { bg = "#ff1744", fg = "#ffffff" })
+local macro_cursor_group = vim.api.nvim_create_augroup("macro_recording_cursor", { clear = true })
+local saved_guicursor
+vim.api.nvim_create_autocmd("RecordingEnter", {
+  group = macro_cursor_group,
+  callback = function()
+    saved_guicursor = vim.o.guicursor
+    vim.o.guicursor =
+      "n-v-c-sm:block-MacroRecordingCursor,i-ci-ve:ver25-MacroRecordingCursor,r-cr-o:hor20-MacroRecordingCursor"
+  end,
+})
+vim.api.nvim_create_autocmd("RecordingLeave", {
+  group = macro_cursor_group,
+  callback = function()
+    if saved_guicursor then
+      vim.o.guicursor = saved_guicursor
+    end
+  end,
+})

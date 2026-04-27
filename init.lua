@@ -8,11 +8,18 @@ do
   end
 end
 
+-- Leaders must be set before any `<leader>…` mapping is registered — otherwise
+-- `<leader>` resolves to the default `\` at registration time and the map
+-- ends up bound to the wrong key. LazyVim's options.lua sets these too, but
+-- that runs after config.lazy below.
+vim.g.mapleader = " "
+vim.g.maplocalleader = "\\"
+
 -- Load keymaps eagerly (before lazy.nvim) so they're active from the first
 -- keystroke. LazyVim normally loads user keymaps on VeryLazy, but that leaves
 -- a startup window where multi-char mappings like `gyp` fall through to vim
--- defaults (e.g. `p` pasting). LazyVim will re-load this file later on
--- VeryLazy; re-setting the same keymaps is a no-op.
+-- defaults (e.g. `p` pasting). Note that `require` caches this module, so the
+-- VeryLazy re-load is actually a no-op — this eager call is the only one.
 require("config.keymaps")
 
 -- bootstrap lazy.nvim, LazyVim and your plugins

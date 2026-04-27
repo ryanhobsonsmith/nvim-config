@@ -10,6 +10,16 @@ return {
           model = "qwen3.5-35b-a3b@q4_k_m",
           api_key_name = "",
         },
+        ["ollama-qwen"] = {
+          __inherited_from = "ollama",
+          endpoint = "http://127.0.0.1:11434",
+          model = "qwen3.6:35b-a3b-bf16",
+        },
+        ["ollama-gemma4"] = {
+          __inherited_from = "ollama",
+          endpoint = "http://127.0.0.1:11434",
+          model = "gemma4:e4b",
+        },
       },
     },
   },

@@ -87,9 +87,17 @@ The user's Neovim is typically in the `nvim` tmux session. Ask which pane if unc
 
 LazyVim sets `vim.diagnostic.config` inside `nvim-lspconfig`'s `config` function, which runs *after* `VeryLazy`. Any `vim.diagnostic.config({...})` call in `keymaps.lua` or `autocmds.lua` gets clobbered once LSP loads. To change defaults like `virtual_text`, override `opts.diagnostics.*` in `lua/plugins/lsp.lua` — that's the source of truth. Runtime toggles (e.g. Snacks toggles that flip state on demand) still work fine since they fire after setup.
 
+### `keymaps.lua` is eager-loaded *before* lazy.nvim in `init.lua`
+
+`init.lua` does `require("config.keymaps")` *before* `require("config.lazy")`. This is intentional — multi-char maps like `gyp` need to be live from the first keystroke, and waiting for LazyVim's VeryLazy reload leaves a startup window where `p` pastes. Two consequences to keep in mind:
+
+1. **`vim.g.mapleader` / `vim.g.maplocalleader` must be set in `init.lua` before the require.** LazyVim's `options.lua` normally sets them, but that runs later. Any `<leader>…` map registered before leaders are set binds to the default `\`, not space — the map silently ends up on the wrong key. (Symptom: `:verbose nmap <leader>foo` says "No mapping found"; pressing the key does nothing or falls through.) Leaders are set explicitly at the top of `init.lua` for exactly this reason — keep them there.
+
+2. **Lua's `require` caches the module**, so LazyVim's later VeryLazy reload of `config.keymaps` is a silent no-op — the file only executes once. Don't rely on a second pass to "fix up" anything.
+
 ### `Snacks` globals aren't ready when `keymaps.lua` loads
 
-`Snacks.toggle` and other `Snacks.*` globals are nil when `lua/config/keymaps.lua` first executes. If a keymap needs `Snacks`, wrap the definition in a `User VeryLazy` autocmd so it runs after Snacks initializes. See the `<leader>uv` toggle in `keymaps.lua` for the pattern.
+Because of the eager load above, `Snacks.toggle` and other `Snacks.*` globals are nil when `lua/config/keymaps.lua` first executes. If a keymap needs `Snacks`, wrap the definition in a `User VeryLazy` autocmd so it runs after Snacks initializes.
 
 ### Disabling lazy-loaded plugins on startup
 

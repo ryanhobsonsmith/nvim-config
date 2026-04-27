@@ -7,6 +7,13 @@
 -- the same buffer — each project uses whichever it has configured.
 vim.g.lazyvim_prettier_needs_config = true
 
+-- Shrink the window where a terminal ESC+<key> burst gets bundled into <M-key>.
+-- Default 50ms is long enough that a fast Caps→Esc followed by `j` can be
+-- misread as <A-j> (LazyVim's "move line down"). 10ms is well under human
+-- keystroke timing locally. Real Alt+key still works in ghostty because it
+-- uses CSI-u, not ESC-prefixing.
+vim.opt.ttimeoutlen = 10
+
 -- Branch on SSH_CONNECTION: pbcopy/pbpaste locally (bypasses the terminal
 -- escape chain entirely — reliable in tmux popups and nested panes), OSC 52
 -- over SSH (the only path that can reach the local clipboard from a remote

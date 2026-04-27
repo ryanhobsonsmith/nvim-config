@@ -6,6 +6,13 @@ map({ "n", "v", "o" }, "B", "^", { desc = "First non-blank character" })
 map({ "n", "v", "o" }, "E", "$", { desc = "End of line" })
 map("n", "ZZ", "<cmd>wa<cr><cmd>qa<cr>", { desc = "Write all and quit all" })
 
+map("n", "<C-d>", "<C-d>zz", { desc = "Half page down and center" })
+map("n", "<C-u>", "<C-u>zz", { desc = "Half page up and center" })
+
+-- Macro recording on Q instead of q to avoid accidental triggers.
+map("n", "Q", "q", { desc = "Record macro / stop recording" })
+map("n", "q", "<Nop>", { desc = "Macro recording disabled (use Q)" })
+
 map("n", "gyp", function()
   local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":.")
   vim.fn.setreg("+", path)
@@ -31,3 +38,13 @@ map("n", "<leader>uv", function()
   vim.diagnostic.config(diag_states[diag_idx])
   vim.notify("Diagnostic virtual lines: " .. diag_labels[diag_idx])
 end, { desc = "Cycle diagnostic virtual lines" })
+
+-- Swap LazyVim defaults: <leader>uz → zoom, <leader>uZ → zen.
+-- Deferred until VeryLazy because Snacks is not yet loaded when this file runs.
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  callback = function()
+    Snacks.toggle.zoom():map("<leader>uz")
+    Snacks.toggle.zen():map("<leader>uZ")
+  end,
+})
