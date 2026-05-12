@@ -25,19 +25,21 @@ map("n", "gyP", function()
   vim.notify("Copied: " .. path)
 end, { desc = "Yank absolute path" })
 
--- Cycle diagnostic virtual_lines: off → current line only → all
-local diag_states = {
-  { virtual_lines = false },
-  { virtual_lines = { current_line = true } },
-  { virtual_lines = true },
-}
-local diag_labels = { "off", "current line", "all" }
-local diag_idx = 2
-map("n", "<leader>uv", function()
-  diag_idx = diag_idx % #diag_states + 1
-  vim.diagnostic.config(diag_states[diag_idx])
-  vim.notify("Diagnostic virtual lines: " .. diag_labels[diag_idx])
-end, { desc = "Cycle diagnostic virtual lines" })
+-- Diagnostic virtual_lines display modes
+map("n", "<leader>uva", function()
+  vim.diagnostic.config({ virtual_lines = true })
+  vim.notify("Diagnostic virtual lines: all")
+end, { desc = "Diagnostics: show all lines" })
+
+map("n", "<leader>uvl", function()
+  vim.diagnostic.config({ virtual_lines = { current_line = true } })
+  vim.notify("Diagnostic virtual lines: current line")
+end, { desc = "Diagnostics: show current line" })
+
+map("n", "<leader>uvo", function()
+  vim.diagnostic.config({ virtual_lines = false })
+  vim.notify("Diagnostic virtual lines: off")
+end, { desc = "Diagnostics: off" })
 
 -- Swap LazyVim defaults: <leader>uz → zoom, <leader>uZ → zen.
 -- Deferred until VeryLazy because Snacks is not yet loaded when this file runs.
