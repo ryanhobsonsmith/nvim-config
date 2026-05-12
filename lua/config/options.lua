@@ -14,30 +14,35 @@ vim.g.lazyvim_prettier_needs_config = true
 -- uses CSI-u, not ESC-prefixing.
 vim.opt.ttimeoutlen = 10
 
--- Branch on SSH_CONNECTION: pbcopy/pbpaste locally (bypasses the terminal
--- escape chain entirely — reliable in tmux popups and nested panes), OSC 52
--- over SSH (the only path that can reach the local clipboard from a remote
--- host). See CLAUDE.md "Clipboard provider" for the full rationale.
-vim.g.clipboard = vim.env.SSH_CONNECTION
+-- Branch on platform: pbcopy/pbpaste on macOS (bypasses the terminal escape
+-- chain entirely — reliable in tmux popups and nested panes), OSC 52
+-- everywhere else (the only path that can reach the local clipboard from a
+-- Linux host or over SSH). See CLAUDE.md "Clipboard provider" for the full
+-- rationale.
+--
+-- Previously branched on SSH_CONNECTION, but that env var doesn't propagate
+-- into pre-existing tmux sessions on reattach, so nvim inside tmux saw the
+-- local branch and tried pbcopy on Linux.
+vim.g.clipboard = vim.fn.has("mac") == 1
     and {
-      name = "OSC 52 (remote)",
+      name = "pbcopy/pbpaste (macOS)",
       copy = {
-        ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
-        ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+        ["+"] = { "pbcopy" },
+        ["*"] = { "pbcopy" },
       },
       paste = {
-        ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
-        ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+        ["+"] = { "pbpaste" },
+        ["*"] = { "pbpaste" },
       },
     }
   or {
-    name = "pbcopy/pbpaste (local)",
+    name = "OSC 52",
     copy = {
-      ["+"] = { "pbcopy" },
-      ["*"] = { "pbcopy" },
+      ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
     },
     paste = {
-      ["+"] = { "pbpaste" },
-      ["*"] = { "pbpaste" },
+      ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
     },
   }

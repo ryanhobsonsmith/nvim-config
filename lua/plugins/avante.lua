@@ -2,7 +2,7 @@ return {
   {
     "yetone/avante.nvim",
     opts = {
-      provider = "copilot",
+      provider = "lmstudio",
       providers = {
         lmstudio = {
           __inherited_from = "openai",
