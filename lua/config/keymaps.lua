@@ -13,13 +13,18 @@ map("n", "<C-u>", "<C-u>zz", { desc = "Half page up and center" })
 map("n", "Q", "q", { desc = "Record macro / stop recording" })
 map("n", "q", "<Nop>", { desc = "Macro recording disabled (use Q)" })
 
-map("n", "gyp", function()
+-- Yank file paths under <leader>fy* instead of gy* because LazyVim binds
+-- `gy` (Goto Type Definition) as an LSP buffer-local keymap. With both `gy`
+-- and `gyp` matching, Neovim waits `timeoutlen` to disambiguate — type the
+-- chord at "medium" speed and you get `gy` (jump to type def) followed by a
+-- stray `p` paste.
+map("n", "<leader>fyp", function()
   local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":.")
   vim.fn.setreg("+", path)
   vim.notify("Copied: " .. path)
 end, { desc = "Yank relative path" })
 
-map("n", "gyP", function()
+map("n", "<leader>fyP", function()
   local path = vim.api.nvim_buf_get_name(0)
   vim.fn.setreg("+", path)
   vim.notify("Copied: " .. path)
