@@ -246,6 +246,39 @@ local function grep_changed(scope)
   end
 end
 
+-- Saved grep filters. Add a row to "save" a new one; it shows up in the
+-- <leader>sf picker automatically. `glob` is passed straight to ripgrep's -g:
+-- a positive glob whitelists, a leading ! excludes (later globs win).
+local grep_filters = {
+  { name = "App code (no test/eval)", glob = { "*.{ts,tsx}", "!*.{test,spec,eval}.*" } },
+  { name = "Tests & evals only", glob = { "*.{test,spec,eval}.*" } },
+}
+
+-- Live grep restricted to a saved filter's globs (mirrors grep_changed above).
+local function grep_filter(filter)
+  return function()
+    Snacks.picker.grep({
+      live = true,
+      glob = filter.glob,
+      title = "Grep · " .. filter.name,
+    })
+  end
+end
+
+-- <leader>sf entry point: pick a saved filter, then grep with it.
+local function pick_grep_filter()
+  Snacks.picker.select(grep_filters, {
+    prompt = "Grep filter",
+    format_item = function(f)
+      return f.name
+    end,
+  }, function(choice)
+    if choice then
+      grep_filter(choice)()
+    end
+  end)
+end
+
 return {
   {
     "folke/snacks.nvim",
@@ -258,6 +291,20 @@ return {
           end,
         },
         sources = picker_sources,
+      },
+      -- Disable Snacks's buffer-local <C-hjkl> t-mode keymaps so the global
+      -- smart-splits mappings can fire instead — LazyVim's defaults only do
+      -- `wincmd <dir>`, which navigates nvim windows but can't cross into
+      -- adjacent tmux panes.
+      terminal = {
+        win = {
+          keys = {
+            nav_h = false,
+            nav_j = false,
+            nav_k = false,
+            nav_l = false,
+          },
+        },
       },
     },
     keys = {
@@ -286,6 +333,11 @@ return {
         "<leader>sC",
         grep_changed("pr"),
         desc = "Grep in PR Files (vs origin/main)",
+      },
+      {
+        "<leader>sf",
+        pick_grep_filter,
+        desc = "Grep (filtered)",
       },
     },
   },

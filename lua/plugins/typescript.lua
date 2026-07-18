@@ -7,7 +7,9 @@ return {
           keys = {
             {
               "K",
-              function() require("ts_expand_hover").hover() end,
+              function()
+                require("ts_expand_hover").hover()
+              end,
               desc = "TypeScript expandable hover",
             },
           },

@@ -7,6 +7,16 @@
 -- the same buffer — each project uses whichever it has configured.
 vim.g.lazyvim_prettier_needs_config = true
 
+-- Scope root detection (e.g. <leader>sg "Grep Root Dir", <leader>ff) to the
+-- current package, not the whole monorepo. LazyVim's default spec
+-- ({ "lsp", { ".git", "lua" }, "cwd" }) resolves to the monorepo top because the
+-- TS LSP roots there and `.git` only exists at the top — so Root Dir == cwd and
+-- <leader>sg/<leader>sG behave identically. Putting package markers first makes
+-- the nearest package.json/tsconfig.json win (vim.fs.find stops at the closest
+-- ancestor), so <leader>sg = current package while <leader>sG = whole repo (cwd).
+-- Inspect what wins with `:LazyRoot`.
+vim.g.root_spec = { { "package.json", "tsconfig.json" }, "lsp", { ".git", "lua" }, "cwd" }
+
 -- Shrink the window where a terminal ESC+<key> burst gets bundled into <M-key>.
 -- Default 50ms is long enough that a fast Caps→Esc followed by `j` can be
 -- misread as <A-j> (LazyVim's "move line down"). 10ms is well under human
