@@ -14,6 +14,11 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Must be set before the ai.copilot extra is imported below: it gates that
+-- extra's copilot-as-completion-source wiring (blink-copilot / copilot-cmp)
+-- vs. plain inline ghost-text suggestions.
+vim.g.ai_cmp = true
+
 -- Build spec with conditional extras based on available tooling.
 -- This lets the same config work across machines with different dev environments.
 -- Order matters: lazyvim.plugins -> lazyvim.plugins.extras -> user plugins
@@ -42,6 +47,7 @@ if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.test.core" })
   table.insert(spec, { import = "lazyvim.plugins.extras.dap.core" })
 end
+
 if vim.fn.executable("docker") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.docker" })
 end
