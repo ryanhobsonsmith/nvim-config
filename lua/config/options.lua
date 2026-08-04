@@ -7,6 +7,13 @@
 -- the same buffer — each project uses whichever it has configured.
 vim.g.lazyvim_prettier_needs_config = true
 
+-- TypeScript LSP server. Default is "vtsls" (Node tsserver wrapper). "tsgo" uses
+-- the native Go-based server from @typescript/native-preview (TS7 beta channel) —
+-- much faster parsing/type-checking, but the editor integration is still in
+-- transition (see nvim-lspconfig#4467) and some refactors/plugins may be missing.
+-- Revert by switching this back to "vtsls" (still installed) and restarting.
+vim.g.lazyvim_ts_lsp = "tsgo"
+
 -- Scope root detection (e.g. <leader>sg "Grep Root Dir", <leader>ff) to the
 -- current package, not the whole monorepo. LazyVim's default spec
 -- ({ "lsp", { ".git", "lua" }, "cwd" }) resolves to the monorepo top because the
