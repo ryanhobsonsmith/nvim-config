@@ -9,6 +9,8 @@ map("n", "ZZ", "<cmd>wa<cr><cmd>qa<cr>", { desc = "Write all and quit all" })
 map("n", "<C-d>", "<C-d>zz", { desc = "Half page down and center" })
 map("n", "<C-u>", "<C-u>zz", { desc = "Half page up and center" })
 
+map("t", "<leader><Esc>", [[<C-\><C-n>]], { desc = "Exit terminal mode" })
+
 -- Macro recording on Q instead of q to avoid accidental triggers.
 map("n", "Q", "q", { desc = "Record macro / stop recording" })
 map("n", "q", "<Nop>", { desc = "Macro recording disabled (use Q)" })

@@ -159,12 +159,115 @@ local file_sources = {
   "lines",
 }
 
+-- ---------------------------------------------------------------------------
+-- "Hide test files" filter, shared across grep / files / symbol pickers.
+--
+-- Sources wired up below (their default LazyVim keymaps in parens):
+--   grep                  → <leader>sg / <leader>sG
+--   grep_word             → <leader>sw / <leader>sW
+--   files                 → <leader>ff / <leader>fF
+--   lsp_symbols           → <leader>ss
+--   lsp_workspace_symbols → <leader>sS
+--
+-- Each defaults to hiding tests; <a-t> toggles them back on — mirroring the
+-- built-in <a-h> (hidden) / <a-i> (ignored) toggles, and like them the state
+-- is PER-PICKER: it lives in `picker.opts.hide_tests` and resets to "hide"
+-- every time you open a picker.
+--
+-- We piggyback on Snacks's own `toggles` machinery (config/init.lua): declaring
+-- `toggles = { hide_tests = ... }` on a source (a) auto-generates the
+-- `toggle_hide_tests` action that flips the opt and re-runs the finder, and
+-- (b) renders an indicator glyph in the title's `{flags}` slot whenever
+-- `picker.opts.hide_tests == value`. We set value = true, so the glyph is
+-- visible exactly when tests are being filtered out — press <a-t> and it
+-- disappears as the tests come back. The glyph's highlight group is
+-- `SnacksPickerToggleHideTests` if you ever want to recolor it.
+--
+-- Why a per-item transform instead of ripgrep -g globs: it's the ONE mechanism
+-- that also works for the LSP symbol pickers, which aren't file/rg based. Cost:
+-- for grep, rg still scans test files and we drop the matches client-side —
+-- negligible here, and it keeps a single predicate + single toggle everywhere.
+-- ---------------------------------------------------------------------------
+
+-- Lua patterns, substring-matched against each item's path. Tune freely.
+local test_patterns = {
+  "%.test%.", -- foo.test.ts
+  "%.spec%.", -- foo.spec.ts
+  "%.eval%.", -- foo.eval.ts
+  "_test%.", -- foo_test.go, foo_test.py
+  "_spec%.", -- foo_spec.rb
+  "/__tests__/", -- JS/TS __tests__ dirs
+  "/__mocks__/", -- JS/TS mock dirs
+  "/tests?/", -- test/ or tests/ dirs (won't match e.g. /latest/)
+  "/spec/", -- rspec / jasmine spec dirs
+  "/e2e/", -- end-to-end test dirs
+}
+
+local function is_test_file(path)
+  for _, pat in ipairs(test_patterns) do
+    if path:find(pat) then
+      return true
+    end
+  end
+  return false
+end
+
+-- Per-item transform. Runs in a fast (libuv) context — string ops only, no
+-- vim.fn / processes. `ctx.picker.opts.hide_tests` is the per-picker toggle
+-- state. Returning false drops the item; returning nil keeps it.
+local function drop_tests(item, ctx)
+  local hide = ctx and ctx.picker and ctx.picker.opts.hide_tests
+  if hide and item.file and is_test_file(item.file) then
+    return false
+  end
+end
+
+-- Combined transform for file sources: git-status coloring AND the test filter.
+local function file_transform(item, ctx)
+  git_status_transform(item) -- color side-effect (sets item.filename_hl)
+  return drop_tests(item, ctx)
+end
+
+-- Per-source config that turns on the test filter + its <a-t> toggle and the
+-- title indicator. `toggle_hide_tests` is auto-created by Snacks from the
+-- `toggles` entry, so we only bind the key.
+local test_filter = {
+  hide_tests = true, -- default: filter on (per-picker; resets each open)
+  -- Flask glyph (nf-fa-flask, U+F0C3) written as UTF-8 byte escapes so no
+  -- non-ASCII byte lives in this file (a literal glyph kept getting stripped).
+  -- Shown when hide_tests == true, i.e. whenever the test filter is active.
+  toggles = { hide_tests = { icon = "\239\131\131", value = true } },
+  win = {
+    input = {
+      keys = {
+        ["<a-t>"] = { "toggle_hide_tests", mode = { "n", "i" }, desc = "Toggle test files" },
+      },
+    },
+  },
+}
+
+-- All file sources get git-status coloring (see top of file).
 local picker_sources = {}
 for _, name in ipairs(file_sources) do
   picker_sources[name] = {
     transform = git_status_transform,
     format = file_format,
   }
+end
+
+-- The subset that also hides tests + gets the <a-t> toggle. (grep covers both
+-- <leader>sg and <leader>sG; files covers both <leader>ff and <leader>fF —
+-- same source, different call-time opts.)
+for _, name in ipairs({ "files", "grep", "grep_word" }) do
+  picker_sources[name] = vim.tbl_deep_extend("force", picker_sources[name], test_filter, {
+    transform = file_transform, -- coloring + filter (overrides the plain transform above)
+  })
+end
+
+-- Symbol pickers: test filter + toggle, but no git coloring / file formatter
+-- (they use the lsp_symbol format), so build them fresh.
+for _, name in ipairs({ "lsp_symbols", "lsp_workspace_symbols" }) do
+  picker_sources[name] = vim.tbl_deep_extend("force", { transform = drop_tests }, test_filter)
 end
 
 -- Build a list of changed-file absolute paths for the given scope:

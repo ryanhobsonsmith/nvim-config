@@ -1,19 +1,85 @@
--- Odin debugging: nvim-dap-odin adds :OdinBuild / :OdinDebug on top of the
--- dap.core extra. :OdinDebug builds the nearest main package with -debug and
--- launches a codelldb session in one step; the usual nvim-dap keymaps
--- (<leader>db breakpoints, <leader>dc continue, dap-ui panes) all apply.
+-- Odin debugging via codelldb.
 --
--- Prefer :OdinDebugHere (defined below): it builds the package containing the
--- CURRENT BUFFER and starts the session immediately. Upstream :OdinDebug has
--- two gotchas in a multi-package repo: it locates the main package by
--- searching upward from Neovim's cwd (so from a repo root it finds nothing),
--- and it only builds — the session then has to be launched separately with
--- <leader>dc.
+-- This replaces the nvim-dap-odin plugin. That plugin located a package by
+-- searching upward from Neovim's cwd for a `main :: proc`, which fails in a
+-- multi-package repo (nothing is found from the repo root) and can't handle
+-- test packages at all (they have no main). It also re-registered
+-- dap.configurations.odin on a 100ms defer, clobbering anything added to it.
 --
--- The codelldb adapter is installed via mason below; the dap.core extra's
--- mason-nvim-dap automatic handlers register it with nvim-dap.
+-- Instead we register a *config provider* (`:help dap-providers`). Providers
+-- run fresh on every dap.continue(), so entries show up in the <leader>dc
+-- picker alongside .vscode/launch.json, can inspect the current buffer to
+-- target the right package, and nothing can clobber them.
+--
+-- Division of labour with the project's .vscode/launch.json: launch.json
+-- covers prebuilt binaries (the hot-reload host, `just dev`), this provider
+-- covers "build the package I'm looking at, then debug it".
 if vim.fn.executable("odin") ~= 1 then
   return {}
+end
+
+local out_dir = vim.fn.stdpath("cache") .. "/odin-dap"
+
+-- Build `dir` with debug info and return the exe path, or nil on failure.
+-- `mode` is "exe" or "test"; test packages need -build-mode:test, which emits
+-- the test runner as a normal executable instead of running it in a temp dir
+-- the way `odin test` does.
+local function build(dir, mode)
+  vim.fn.mkdir(out_dir, "p")
+  local name = vim.fn.fnamemodify(dir, ":t")
+  local program = out_dir .. "/" .. name .. (mode == "test" and "_test" or "")
+  local cmd = { "odin", "build", dir, "-debug", "-out:" .. program }
+  if mode == "test" then
+    vim.list_extend(cmd, {
+      "-build-mode:test",
+      -- Single-threaded so breakpoints hit on the main thread and stepping
+      -- doesn't jump between test workers.
+      "-define:ODIN_TEST_THREADS=1",
+    })
+  end
+
+  local result = vim.system(cmd, { text = true }):wait()
+  if result.code ~= 0 then
+    vim.notify("Odin build failed:\n" .. (result.stderr or "") .. (result.stdout or ""), vim.log.levels.ERROR)
+    return nil
+  end
+  return program
+end
+
+-- What kind of package is this directory: does it have an entry point, tests?
+local function inspect_package(dir)
+  local has_main, has_test = false, false
+  for _, file in ipairs(vim.fn.glob(dir .. "/*.odin", false, true)) do
+    if file:match("_test%.odin$") then
+      has_test = true
+    end
+    for _, line in ipairs(vim.fn.readfile(file)) do
+      if line:match("main%s*::%s*proc") then
+        has_main = true
+      elseif line:match("^%s*@%(test%)") or line:match("@%(test%)") then
+        has_test = true
+      end
+    end
+  end
+  return has_main, has_test
+end
+
+-- Build a dap config for `dir`. `program` is a function so the build runs when
+-- the config is actually selected, not when the picker is populated.
+local function odin_config(dir, mode)
+  local name = vim.fn.fnamemodify(dir, ":t")
+  return {
+    name = mode == "test" and ("Odin: debug tests (" .. name .. ")") or ("Odin: debug package (" .. name .. ")"),
+    type = "codelldb",
+    request = "launch",
+    program = function()
+      return build(dir, mode)
+    end,
+    -- Repo root, not the package dir, so relative asset paths and
+    -- tools/odin_lldb.py resolve the same way they do for a normal run.
+    cwd = "${workspaceFolder}",
+    stopOnEntry = false,
+  }
 end
 
 return {
@@ -22,54 +88,61 @@ return {
     opts = { ensure_installed = { "codelldb" } },
   },
   {
-    "NANDquark/nvim-dap-odin",
-    ft = "odin",
-    dependencies = { "mfussenegger/nvim-dap" },
-    config = function()
-      -- Build into nvim's cache dir instead of the plugin default, which drops
-      -- an executable named `debug` into the package's source directory.
-      require("nvim-dap-odin").setup({
-        output_dir = vim.fn.stdpath("cache") .. "/nvim-dap-odin",
-      })
+    "mfussenegger/nvim-dap",
+    init = function()
+      LazyVim.on_load("nvim-dap", function()
+        local dap = require("dap")
 
-      -- Build and debug the package containing the current buffer, in one step.
-      vim.api.nvim_create_user_command("OdinDebugHere", function()
-        local dir = vim.fn.expand("%:p:h")
-        local root = vim.fn.getcwd()
-        -- The plugin's build searches from cwd, so point cwd at the buffer's
-        -- package for the duration of the build.
-        vim.cmd.cd(vim.fn.fnameescape(dir))
-        local ok, program = pcall(require("nvim-dap-odin").build, "debug", "debug")
-        vim.cmd.cd(vim.fn.fnameescape(root))
-        if not ok or not program then
-          return
-        end
-        require("dap").run({
-          name = "Odin: " .. vim.fn.fnamemodify(dir, ":t"),
-          type = "codelldb",
-          request = "launch",
-          program = program,
-          cwd = root,
-        })
-      end, { desc = "Build and debug the current buffer's Odin package" })
-
-      -- If the project vendors LLDB formatters for Odin types (spacesim has
-      -- tools/odin_lldb.py), load them into every session so strings, slices,
-      -- and maps render readably. Done via the on_config listener — which
-      -- transforms each config at session start — because nvim-dap-odin
-      -- (re)registers dap.configurations.odin on a 100ms defer, clobbering
-      -- anything patched onto the table directly.
-      require("dap").listeners.on_config["odin-lldb-formatters"] = function(cfg)
-        if cfg.type == "codelldb" and not cfg.initCommands then
-          local script = vim.fn.getcwd() .. "/tools/odin_lldb.py"
-          if vim.fn.filereadable(script) == 1 then
-            cfg = vim.tbl_extend("force", cfg, {
-              initCommands = { "command script import " .. script },
-            })
+        -- Offer build-and-debug entries for the package of the current buffer.
+        dap.providers.configs["odin.package"] = function(bufnr)
+          if vim.bo[bufnr].filetype ~= "odin" then
+            return {}
           end
+          local file = vim.api.nvim_buf_get_name(bufnr)
+          if file == "" then
+            return {}
+          end
+          local dir = vim.fn.fnamemodify(file, ":h")
+          local has_main, has_test = inspect_package(dir)
+
+          local configs = {}
+          if has_test then
+            table.insert(configs, odin_config(dir, "test"))
+          end
+          if has_main then
+            table.insert(configs, odin_config(dir, "exe"))
+          end
+          return configs
         end
-        return cfg
-      end
+
+        -- Load the project's LLDB formatters for Odin types (spacesim vendors
+        -- tools/odin_lldb.py) into every codelldb session, so strings, slices
+        -- and maps render readably. Applies to launch.json configs too.
+        dap.listeners.on_config["odin-lldb-formatters"] = function(cfg)
+          if cfg.type == "codelldb" and not cfg.initCommands then
+            local script = vim.fn.getcwd() .. "/tools/odin_lldb.py"
+            if vim.fn.filereadable(script) == 1 then
+              cfg = vim.tbl_extend("force", cfg, {
+                initCommands = { "command script import " .. script },
+              })
+            end
+          end
+          return cfg
+        end
+      end)
     end,
+    -- Shortcuts that skip the picker and go straight to the current package.
+    -- stylua: ignore
+    keys = {
+      {
+        "<leader>dT",
+        function()
+          local dir = vim.fn.expand("%:p:h")
+          require("dap").run(odin_config(dir, "test"))
+        end,
+        desc = "Debug Odin Tests (current package)",
+        ft = "odin",
+      },
+    },
   },
 }

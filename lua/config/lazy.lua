@@ -30,6 +30,12 @@ local spec = {
   { import = "lazyvim.plugins.extras.lang.json" },
   { import = "lazyvim.plugins.extras.lang.markdown" },
   { import = "lazyvim.plugins.extras.lang.yaml" },
+  -- Neither needs external tooling, and both are used by languages that have
+  -- nothing to do with node (Odin debugging via dap-odin.lua, Odin tests via
+  -- neotest-odin.lua). These used to sit in the `node` block below, which meant
+  -- a machine without node silently lost <leader>dc and all of neotest.
+  { import = "lazyvim.plugins.extras.test.core" },
+  { import = "lazyvim.plugins.extras.dap.core" },
 }
 
 if vim.fn.executable("go") == 1 then
@@ -44,8 +50,6 @@ if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.tailwind" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.avante" })
-  table.insert(spec, { import = "lazyvim.plugins.extras.test.core" })
-  table.insert(spec, { import = "lazyvim.plugins.extras.dap.core" })
 end
 
 if vim.fn.executable("docker") == 1 then

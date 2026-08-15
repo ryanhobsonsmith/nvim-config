@@ -5,23 +5,23 @@ return {
       { "<leader>do", false },
       { "<leader>dO", false },
       { "<leader>dt", false },
+      -- dap.ui.widgets.hover is superseded by dap-view's watch/hover
+      -- (see dap-view.lua, which reclaims <leader>dw).
+      { "<leader>dw", false },
+      -- LazyVim binds do=step_out / dO=step_over; swapped here so the common
+      -- one is the easier keystroke.
+      --
+      -- Deliberately a plain step_over: an earlier version looped on
+      -- vim.fn.getcharstr() to let `o` repeat the step, but that blocks
+      -- Neovim's main loop — which is where nvim-dap handles the adapter's
+      -- response and moves the cursor — so every step appeared to hang until
+      -- the next keypress. Repeat by holding the mapping instead.
       {
         "<leader>do",
         function()
-          local dap = require("dap")
-          dap.step_over()
-          while true do
-            local ok, char = pcall(vim.fn.getcharstr)
-            if not ok or char ~= "o" then
-              if ok and char and char ~= "" then
-                vim.api.nvim_feedkeys(char, "n", false)
-              end
-              return
-            end
-            dap.step_over()
-          end
+          require("dap").step_over()
         end,
-        desc = "Step Over (press o to repeat)",
+        desc = "Step Over",
       },
       {
         "<leader>dO",
