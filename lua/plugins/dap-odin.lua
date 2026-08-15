@@ -46,24 +46,6 @@ local function build(dir, mode)
   return program
 end
 
--- What kind of package is this directory: does it have an entry point, tests?
-local function inspect_package(dir)
-  local has_main, has_test = false, false
-  for _, file in ipairs(vim.fn.glob(dir .. "/*.odin", false, true)) do
-    if file:match("_test%.odin$") then
-      has_test = true
-    end
-    for _, line in ipairs(vim.fn.readfile(file)) do
-      if line:match("main%s*::%s*proc") then
-        has_main = true
-      elseif line:match("^%s*@%(test%)") or line:match("@%(test%)") then
-        has_test = true
-      end
-    end
-  end
-  return has_main, has_test
-end
-
 -- Build a dap config for `dir`. `program` is a function so the build runs when
 -- the config is actually selected, not when the picker is populated.
 local function odin_config(dir, mode)
@@ -94,7 +76,14 @@ return {
         local dap = require("dap")
 
         -- Offer build-and-debug entries for the package of the current buffer.
-        dap.providers.configs["odin.package"] = function(bufnr)
+        --
+        -- The "0." prefix is load-bearing: nvim-dap concatenates providers in
+        -- sorted key order (`table.sort(provider_keys)` in dap.continue), so a
+        -- key of "odin.package" would land these *below* "dap.global" and
+        -- "dap.launch.json". Sorting ahead of them puts the buffer-derived
+        -- entries at the top of the <leader>dc picker, matching where the
+        -- overseer template provider puts them in <leader>rr.
+        dap.providers.configs["0.odin.package"] = function(bufnr)
           if vim.bo[bufnr].filetype ~= "odin" then
             return {}
           end
@@ -103,7 +92,10 @@ return {
             return {}
           end
           local dir = vim.fn.fnamemodify(file, ":h")
-          local has_main, has_test = inspect_package(dir)
+          -- Same package introspection the overseer template provider uses
+          -- (lua/overseer/template/odin.lua), so <leader>dc and <leader>rr
+          -- offer the same set of things for the buffer you're sitting in.
+          local has_main, has_test = require("odin.package").inspect(dir)
 
           local configs = {}
           if has_test then
