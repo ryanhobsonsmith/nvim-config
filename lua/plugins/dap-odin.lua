@@ -82,7 +82,7 @@ return {
         -- key of "odin.package" would land these *below* "dap.global" and
         -- "dap.launch.json". Sorting ahead of them puts the buffer-derived
         -- entries at the top of the <leader>dc picker, matching where the
-        -- overseer template provider puts them in <leader>rr.
+        -- overseer template provider puts them in <leader>tr.
         dap.providers.configs["0.odin.package"] = function(bufnr)
           if vim.bo[bufnr].filetype ~= "odin" then
             return {}
@@ -93,7 +93,7 @@ return {
           end
           local dir = vim.fn.fnamemodify(file, ":h")
           -- Same package introspection the overseer template provider uses
-          -- (lua/overseer/template/odin.lua), so <leader>dc and <leader>rr
+          -- (lua/overseer/template/odin.lua), so <leader>dc and <leader>tr
           -- offer the same set of things for the buffer you're sitting in.
           local has_main, has_test = require("odin.package").inspect(dir)
 

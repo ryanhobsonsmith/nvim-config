@@ -1,5 +1,5 @@
 -- Wire the vendored Odin adapter (lua/neotest-odin/) into neotest, so Odin
--- tests answer to the same <leader>tt/tr/tT/td keymaps as everything else.
+-- tests answer to the same <leader>tt/tl/tf/ta/td keymaps as everything else.
 --
 -- No plugin dependency: ~/.config/nvim/lua is on the runtimepath, so neotest
 -- resolves the adapter by `require("neotest-odin")`. See the adapter's header

@@ -24,10 +24,10 @@ return {
     },
     -- stylua: ignore
     keys = {
-      { "<leader>tt", save_and_run(function() require("neotest").run.run(vim.fn.expand("%")) end), desc = "Run File (Neotest)" },
-      { "<leader>tT", save_and_run(function() require("neotest").run.run(vim.uv.cwd()) end), desc = "Run All Test Files (Neotest)" },
-      { "<leader>tr", save_and_run(function() require("neotest").run.run() end), desc = "Run Nearest (Neotest)" },
+      { "<leader>tt", save_and_run(function() require("neotest").run.run() end), desc = "Run Nearest (Neotest)" },
       { "<leader>tl", save_and_run(function() require("neotest").run.run_last() end), desc = "Run Last (Neotest)" },
+      { "<leader>tf", save_and_run(function() require("neotest").run.run(vim.fn.expand("%")) end), desc = "Run File (Neotest)" },
+      { "<leader>ta", save_and_run(function() require("neotest").run.run(vim.uv.cwd()) end), desc = "Run All Test Files (Neotest)" },
       { "<leader>td", save_and_run(function() require("neotest").run.run({ strategy = "dap" }) end), desc = "Debug Nearest (Neotest)" },
     },
   },

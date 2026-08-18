@@ -2,7 +2,7 @@
 --
 -- Both the dap config provider (lua/plugins/dap-odin.lua, feeding <leader>dc)
 -- and the overseer template provider (lua/overseer/template/odin.lua, feeding
--- <leader>rr) need the same question answered about the directory holding the
+-- <leader>tr) need the same question answered about the directory holding the
 -- current buffer: does this package have an entry point, and does it have
 -- tests? Odin has no manifest file — no Cargo.toml, no package.json — so the
 -- only way to know is to read the .odin files. Keeping that in one module is

@@ -2,7 +2,7 @@
 --
 -- <leader>dc (nvim-dap's continue()) pops a picker of *debug* configurations
 -- gathered from providers — dap globals, .vscode/launch.json, and the odin
--- provider in dap-odin.lua. <leader>rr is the same idea for plain runs:
+-- provider in dap-odin.lua. <leader>tr is the same idea for plain runs:
 -- overseer probes the project and offers whatever it finds.
 --
 -- Discovery is the whole reason for the plugin. yeet.nvim already re-runs a
@@ -44,15 +44,17 @@ return {
     },
     -- stylua: ignore
     keys = {
-      { "<leader>r", "", desc = "+run" },
+      -- Shares the <leader>t namespace with neotest ("+test/task"): tests own
+      -- t/l/f/a/d, tasks own r/L/y/o/A.
+      { "<leader>t", "", desc = "+test/task" },
       {
-        "<leader>rr",
+        "<leader>tr",
         save_all_then(function() vim.cmd("OverseerRun") end),
         desc = "Run Task (picker)",
       },
-      { "<leader>rt", "<cmd>OverseerToggle<cr>", desc = "Toggle Task List" },
+      { "<leader>to", "<cmd>OverseerToggle<cr>", desc = "Toggle Task List" },
       {
-        "<leader>ra",
+        "<leader>tA",
         function()
           local overseer = require("overseer")
           local tasks = overseer.list_tasks()
@@ -64,7 +66,7 @@ return {
         desc = "Task Action (most recent)",
       },
       {
-        "<leader>rl",
+        "<leader>tL",
         save_all_then(function()
           local overseer = require("overseer")
           local tasks = overseer.list_tasks({
@@ -89,7 +91,7 @@ return {
         -- tracking and problem matchers would show "ran" with no pass/fail.
         -- autostart = false means overseer builds the task (resolving template
         -- params) but never spawns it, so yeet is the only thing that runs it.
-        "<leader>ry",
+        "<leader>ty",
         save_all_then(function()
           require("overseer").run_task({ autostart = false }, function(task)
             if not task then

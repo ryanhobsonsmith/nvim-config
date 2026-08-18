@@ -1,9 +1,9 @@
--- Odin task provider for overseer — the <leader>rr counterpart to the Odin
+-- Odin task provider for overseer — the <leader>tr counterpart to the Odin
 -- entries dap-odin.lua contributes to the <leader>dc picker.
 --
 -- Odin has no manifest file, so none of overseer's builtin providers (just,
 -- npm, make, cargo, …) can discover anything in an Odin package. Without this,
--- <leader>dc offered "debug tests (pkg)" while <leader>rr had nothing to show
+-- <leader>dc offered "debug tests (pkg)" while <leader>tr had nothing to show
 -- for the same buffer. Both now derive their entries from lua/odin/package.lua,
 -- so they stay in agreement about what a package supports.
 --
@@ -20,7 +20,7 @@ local TAG = constants.TAG
 -- Odin diagnostics look like:
 --   /abs/path/foo.odin(12:5) Error: undeclared identifier
 -- %trror/%tarning capture the E/W type char, so failures land in the quickfix
--- list with the right severity (<leader>rr → task list → `o` opens output;
+-- list with the right severity (<leader>tr → task list → `o` opens output;
 -- overseer's on_output_quickfix component consumes this).
 local ERRORFORMAT = table.concat({
   [[%f(%l:%c) %trror: %m]],
