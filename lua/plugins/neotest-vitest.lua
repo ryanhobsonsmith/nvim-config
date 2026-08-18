@@ -29,6 +29,12 @@ return {
       { "<leader>tf", save_and_run(function() require("neotest").run.run(vim.fn.expand("%")) end), desc = "Run File (Neotest)" },
       { "<leader>ta", save_and_run(function() require("neotest").run.run(vim.uv.cwd()) end), desc = "Run All Test Files (Neotest)" },
       { "<leader>td", save_and_run(function() require("neotest").run.run({ strategy = "dap" }) end), desc = "Debug Nearest (Neotest)" },
+      -- The test.core extra contributes its own neotest keys; same-lhs entries
+      -- above override it, but its unique keys must be disabled where they
+      -- collide with our layout: tr/to belong to overseer, tT duplicates ta.
+      { "<leader>tr", false },
+      { "<leader>to", false },
+      { "<leader>tT", false },
     },
   },
 }
