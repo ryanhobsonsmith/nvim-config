@@ -32,6 +32,7 @@ Extras are configured **programmatically in `lua/config/lazy.lua`**, NOT in `laz
   - `go` → `lang.go`
   - `python3` → `lang.python`
   - `node` → `lang.typescript`, `lang.tailwind`, `ai.copilot`, `ai.avante`
+  - `cc` / `gcc` / `clang` → `lang.clangd` (C/C++)
   - `docker` → `lang.docker`
   - `psql` / `mysql` / `sqlite3` → `lang.sql`
 
@@ -67,6 +68,36 @@ The user's Neovim is typically in the `nvim` tmux session. Ask which pane if unc
 - For fast iteration, use `vim.api.nvim_set_hl()` via tmux to test colors live, then bake final values into the config
 - Custom highlights (Tree-sitter and LSP semantic tokens) go in the `opts.highlights` table
 - Use `:Inspect!` on a token to see which highlight group is winning (highest priority wins)
+
+## C Development
+
+C support is gated on a compiler (`cc`/`gcc`/`clang`) in `lua/config/lazy.lua`, which
+imports LazyVim's `lang.clangd` extra. That extra provides: **clangd** LSP
+(`--background-index --clang-tidy --header-insertion=iwyu`, mason-installed), the `cpp`
+Tree-sitter parser (`c` is in LazyVim's base), **codelldb** DAP with generic
+`Launch file` / `Attach to process` configs, `<leader>ch` (switch source/header), and
+clangd_extensions completion scoring.
+
+On top of the extra, this config adds:
+
+- **Formatting** (`lua/plugins/conform.lua`): `clang_format` for `c`/`cpp`, run on save.
+  `clang-format` ships with the LLVM/clang package; on a gcc-only machine install it with
+  `:MasonInstall clang-format`. Respects a project `.clang-format`, else LLVM style.
+- **Build-and-debug provider** (`lua/plugins/dap-c.lua`): mirrors `dap-odin.lua`. A dap
+  config provider (`0.c.file`) compiles the current single file with `-g` on demand and
+  debugs it via codelldb, appearing at the top of `<leader>dc`; `<leader>dF` is the direct
+  key. Also re-declares the codelldb mason ensure so a C-only machine (no Odin) still gets
+  the adapter. The extra's `Launch file`/`Attach` configs are untouched — use those for
+  binaries produced by a build system.
+- **Single-file run tasks** (`lua/overseer/template/c.lua`): mirrors the Odin template.
+  Offers `run`/`build`/`check` for a lone `.c` under `<leader>rr`, with a gcc/clang
+  errorformat feeding the quickfix. Make/Just projects are already covered by overseer's
+  builtin providers — no custom template needed for those.
+
+**compile_commands.json:** for multi-file Make/Just projects, clangd needs a
+`compile_commands.json` at the project root for correct cross-file diagnostics. Generate it
+with `bear -- make`, have the build emit it (CMake: `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`),
+or commit one. Single-file programs work without it.
 
 ## Pending Follow-ups
 

@@ -52,6 +52,9 @@ if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.avante" })
 end
 
+if vim.fn.executable("cc") == 1 or vim.fn.executable("gcc") == 1 or vim.fn.executable("clang") == 1 then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.clangd" })
+end
 if vim.fn.executable("docker") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.docker" })
 end
