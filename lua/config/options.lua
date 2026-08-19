@@ -31,6 +31,17 @@ vim.g.root_spec = { { "package.json", "tsconfig.json" }, "lsp", { ".git", "lua" 
 -- uses CSI-u, not ESC-prefixing.
 vim.opt.ttimeoutlen = 10
 
+-- Inside tmux, disable synchronized output (DEC 2026). With termsync on, nvim
+-- trusts sync frames for atomicity and never hides the cursor during redraws —
+-- but tmux splits one nvim frame into several sync-wrapped flushes and re-shows
+-- the cursor between them, so the white block cursor visibly "scans" the screen
+-- on large redraws. With termsync off, nvim hides the cursor around each redraw
+-- instead, which tmux relays. Outside tmux, sync frames reach the terminal
+-- intact, so the default stays on there.
+if vim.env.TMUX then
+  vim.o.termsync = false
+end
+
 -- Branch on platform: pbcopy/pbpaste on macOS (bypasses the terminal escape
 -- chain entirely — reliable in tmux popups and nested panes), OSC 52
 -- everywhere else (the only path that can reach the local clipboard from a
