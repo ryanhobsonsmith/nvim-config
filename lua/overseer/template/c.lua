@@ -46,7 +46,11 @@ return {
       return {}
     end
     local name = vim.fn.fnamemodify(file, ":t:r")
-    local exe = vim.fn.stdpath("cache") .. "/c-dap/" .. name
+    local out_dir = vim.fn.stdpath("cache") .. "/c-dap"
+    -- ld can't create the output dir itself, so ensure it exists before the
+    -- compile task runs (dap-c.lua does the same for its build).
+    vim.fn.mkdir(out_dir, "p")
+    local exe = out_dir .. "/" .. name
 
     -- Run from the repo root rather than the file's dir so relative asset paths
     -- resolve the way they do under the debugger (dap-c.lua launches with

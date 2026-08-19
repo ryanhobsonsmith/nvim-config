@@ -69,26 +69,32 @@ return {
   },
   {
     "mfussenegger/nvim-dap",
-    init = function()
-      LazyVim.on_load("nvim-dap", function()
-        local dap = require("dap")
+    -- Register the provider via `opts`, not `init`. dap-odin.lua already claims
+    -- nvim-dap's `init`, and lazy.nvim keeps only the last `init` when merging
+    -- fragments (it's a scalar field). `opts` functions, by contrast, compose —
+    -- lazy chains every fragment's opts function — so both providers survive.
+    -- The function still runs even though LazyVim's nvim-dap `config` ignores
+    -- opts: lazy always evaluates opts before calling config.
+    opts = function(_, opts)
+      local dap = require("dap")
 
-        -- Offer a build-and-debug entry for the current C/C++ buffer. The "0."
-        -- prefix sorts it ahead of "dap.launch.json"/"dap.global" (nvim-dap
-        -- concatenates providers in sorted key order), putting it at the top of
-        -- the <leader>dc picker — same placement as dap-odin.lua's provider.
-        dap.providers.configs["0.c.file"] = function(bufnr)
-          local ft = vim.bo[bufnr].filetype
-          if ft ~= "c" and ft ~= "cpp" then
-            return {}
-          end
-          local file = vim.api.nvim_buf_get_name(bufnr)
-          if file == "" then
-            return {}
-          end
-          return { c_config(file) }
+      -- Offer a build-and-debug entry for the current C/C++ buffer. The "0."
+      -- prefix sorts it ahead of "dap.launch.json"/"dap.global" (nvim-dap
+      -- concatenates providers in sorted key order), putting it at the top of
+      -- the <leader>dc picker — same placement as dap-odin.lua's provider.
+      dap.providers.configs["0.c.file"] = function(bufnr)
+        local ft = vim.bo[bufnr].filetype
+        if ft ~= "c" and ft ~= "cpp" then
+          return {}
         end
-      end)
+        local file = vim.api.nvim_buf_get_name(bufnr)
+        if file == "" then
+          return {}
+        end
+        return { c_config(file) }
+      end
+
+      return opts
     end,
     -- Shortcut that skips the picker and builds+debugs the current file.
     -- stylua: ignore
