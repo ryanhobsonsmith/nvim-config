@@ -49,11 +49,15 @@ map("n", "<leader>uvo", function()
 end, { desc = "Diagnostics: off" })
 
 -- Override LazyVim defaults: <leader>uz → zoom (zen removed), <leader>uZ freed for future use.
--- Deferred until VeryLazy because Snacks is not yet loaded when this file runs.
+-- LazyVim sets its defaults (uz → zen, uZ → zoom) in its own User VeryLazy handler, which is
+-- registered during lazy.setup() — after this eagerly-loaded file's autocmd. Firing-order
+-- means our handler runs first and would be clobbered, so schedule past LazyVim's.
 vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   callback = function()
-    Snacks.toggle.zoom():map("<leader>uz")
-    vim.keymap.del("n", "<leader>uZ") -- LazyVim maps zoom here by default; keep the key open
+    vim.schedule(function()
+      Snacks.toggle.zoom():map("<leader>uz")
+      vim.keymap.del("n", "<leader>uZ")
+    end)
   end,
 })
