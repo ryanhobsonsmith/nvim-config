@@ -48,12 +48,12 @@ map("n", "<leader>uvo", function()
   vim.notify("Diagnostic virtual lines: off")
 end, { desc = "Diagnostics: off" })
 
--- Swap LazyVim defaults: <leader>uz → zoom, <leader>uZ → zen.
+-- Override LazyVim defaults: <leader>uz → zoom (zen removed), <leader>uZ freed for future use.
 -- Deferred until VeryLazy because Snacks is not yet loaded when this file runs.
 vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   callback = function()
     Snacks.toggle.zoom():map("<leader>uz")
-    Snacks.toggle.zen():map("<leader>uZ")
+    vim.keymap.del("n", "<leader>uZ") -- LazyVim maps zoom here by default; keep the key open
   end,
 })
