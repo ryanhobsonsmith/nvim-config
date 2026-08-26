@@ -1,0 +1,9 @@
+{
+  "name": "personal-snippets",
+  "contributes": {
+    "snippets": [
+      { "language": ["typescriptreact", "javascriptreact"], "path": "./react.json" },
+      { "language": "odin", "path": "./odin.json" }
+    ]
+  }
+}

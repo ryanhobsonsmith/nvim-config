@@ -1,0 +1,123 @@
+{
+  "Package with main": {
+    "prefix": "pkgmain",
+    "description": "package + import fmt + main proc, for a fresh file",
+    "body": [
+      "package ${1:main}",
+      "",
+      "import \"core:fmt\"",
+      "",
+      "main :: proc() {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure": {
+    "prefix": "prc",
+    "description": "Procedure declaration (tab through name/params/body)",
+    "body": [
+      "${1:name} :: proc(${2:params}) {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure with return": {
+    "prefix": "prcr",
+    "description": "Procedure with return type",
+    "body": [
+      "${1:name} :: proc(${2:params}) -> ${3:T} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure with ok return": {
+    "prefix": "prcok",
+    "description": "Procedure returning (value, ok) pair",
+    "body": [
+      "${1:name} :: proc(${2:params}) -> (${3:res}: ${4:T}, ok: bool) {",
+      "\t$0",
+      "\treturn ${3}, true",
+      "}"
+    ]
+  },
+  "Struct": {
+    "prefix": "str",
+    "description": "Struct declaration",
+    "body": [
+      "${1:Name} :: struct {",
+      "\t${2:field}: ${3:T},$0",
+      "}"
+    ]
+  },
+  "Enum": {
+    "prefix": "enm",
+    "description": "Enum declaration",
+    "body": [
+      "${1:Name} :: enum {",
+      "\t${2:Variant},$0",
+      "}"
+    ]
+  },
+  "Union": {
+    "prefix": "uni",
+    "description": "Union declaration",
+    "body": [
+      "${1:Name} :: union {",
+      "\t${2:T},$0",
+      "}"
+    ]
+  },
+  "Switch": {
+    "prefix": "sw",
+    "description": "Switch statement",
+    "body": [
+      "switch ${1:expr} {",
+      "case ${2:value}:",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Partial switch": {
+    "prefix": "psw",
+    "description": "#partial switch (enums/unions without covering every case)",
+    "body": [
+      "#partial switch ${1:expr} {",
+      "case ${2:value}:",
+      "\t$0",
+      "}"
+    ]
+  },
+  "For with index": {
+    "prefix": "forx",
+    "description": "for elem, index in iterable",
+    "body": [
+      "for ${2:elem}, ${3:i} in ${1:iterable} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "When debug": {
+    "prefix": "whendbg",
+    "description": "when ODIN_DEBUG block",
+    "body": [
+      "when ODIN_DEBUG {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "or_return call": {
+    "prefix": "orr",
+    "description": "assign with or_return",
+    "body": ["${1:val} := ${2:call}($3) or_return$0"]
+  },
+  "Test proc": {
+    "prefix": "tst",
+    "description": "@(test) procedure (import \"core:testing\")",
+    "body": [
+      "@(test)",
+      "${1:test_name} :: proc(t: ^testing.T) {",
+      "\t$0",
+      "}"
+    ]
+  }
+}

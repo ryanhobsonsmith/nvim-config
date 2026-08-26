@@ -174,12 +174,22 @@ A previous config was also asymmetric: OSC 52 copy + `pbpaste` paste. OSC 52 cop
 - OSC 52 paste requires terminal OSC 52 *read* support. Ghostty supports it; tmux 3.4+ relays it. Older tmux may hang the paste query — if that becomes an issue, drop the `paste` branch on the non-mac side and rely on terminal paste (Cmd+V / Ctrl+Shift+V) for bringing outside text into nvim.
 - Nested SSH hops need OSC 52 pass-through at each layer.
 
+## Snippets
+
+Custom VSCode-format snippets live in `snippets/` (registered via `snippets/package.json`,
+auto-loaded by blink.cmp's default snippets source — no plugin config needed). Currently
+`react.json` (typescriptreact/javascriptreact) and `odin.json`. Tab / Shift-Tab jump
+between placeholders. Note: Odin also gets server-side snippets from ols
+(`proc`, `main`, `st`, `if`, `forr`, `fori`, `ff`, `fl`) via the LSP source — those only
+appear in identifier position and are not part of the blink snippets provider, so the
+`<A-s>` snippets-only menu (defined in `lua/plugins/blink.lua`) shows only file-based ones.
+
 ## AI Tooling
 
 Three AI assistants coexist with distinct keymap prefixes to avoid collisions:
 
 - **Copilot** (`lua/plugins/copilot.lua`) — disabled at startup; `:Copilot enable` to turn on. Tab-completion agent, not chat.
-- **Avante** (`lua/plugins/avante.lua`, `<leader>a` prefix) — Cursor-style inline edits and sidebar chat. Configured providers: `lmstudio` (OpenAI-compatible at `http://127.0.0.1:1234/v1`, default), `copilot`, and a couple of `ollama-*` variants. Switch with `:AvanteSwitchProvider`. Each provider has a hardcoded default model; override via `providers.<name>.model`. Note: Avante's `setup()` eagerly initializes the configured provider — picking `copilot` as default would throw on machines that haven't run `:Copilot auth` (no `~/.config/github-copilot/{hosts,apps}.json`) and abort the whole plugin's config, which is why the default is the always-reachable local one.
+- **Avante** (`lua/plugins/avante.lua`, `<leader>a` prefix) — Cursor-style inline edits and sidebar chat. Configured providers: `lmstudio` (OpenAI-compatible at `http://127.0.0.1:1234/v1`, default), `copilot`, and a couple of `ollama-*` variants. Switch with `:AvanteSwitchProvider`. Each provider has a hardcoded default model; override via `providers.<name>.model`. Note: Avante's `setup()` eagerly initializes the configured provider — picking `copilot` as default would throw on machines that haven't run `:Copilot auth` (no `~/.config/github-copilot/{hosts,apps}.json`) and abort the whole plugin's config, which is why the default is the always-reachable local one. **Build:** the extra's `build = "make"` compiles avante's Rust libraries from source and requires cargo (rustup via Homebrew; keg-only, PATH set in `.zshrc`). Don't switch to the prebuilt-binary path (`build.sh`): the published macOS artifacts are built on Nix CI and link `/nix/store/...` dylibs that don't exist on a normal Mac (`dlopen` fails; untracked upstream as of Aug 2026).
 - **Claude Code** (`lua/plugins/claudecode.lua`, `<leader>C` prefix) — `coder/claudecode.nvim` (community plugin, implements Claude Code's IDE protocol; Anthropic has no first-party Neovim plugin).
 
 ### render-markdown for AI sidebars
