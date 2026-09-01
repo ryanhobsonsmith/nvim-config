@@ -179,7 +179,10 @@ function adapter.build_spec(args)
     }
   end
 
-  local command = { "odin", "test", location }
+  -- `odin test` writes the test executable to the cwd (named after the
+  -- package) before running it, which litters the source tree. Point it at a
+  -- temp path instead; the file is small and the OS reaps the temp dir.
+  local command = { "odin", "test", location, "-out:" .. async.fn.tempname() }
   vim.list_extend(command, base_defines(test_names, results_path))
 
   return {

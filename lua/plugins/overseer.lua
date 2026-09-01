@@ -27,6 +27,17 @@ local function save_all_then(fn)
 end
 
 return {
+  -- The dap = true patch below only takes effect once overseer's setup has
+  -- run, but overseer is lazy-loaded on its cmds/keys while <leader>dc loads
+  -- only nvim-dap. Without this fragment, a debug session started before any
+  -- overseer key silently skips launch.json's preLaunchTask and debugs a
+  -- stale binary (breakpoints go unverified — red ! — and don't hit).
+  -- Loading overseer as a dap dependency closes the gap.
+  {
+    "mfussenegger/nvim-dap",
+    optional = true,
+    dependencies = { "stevearc/overseer.nvim" },
+  },
   {
     "stevearc/overseer.nvim",
     cmd = { "OverseerRun", "OverseerToggle", "OverseerOpen", "OverseerInfo" },

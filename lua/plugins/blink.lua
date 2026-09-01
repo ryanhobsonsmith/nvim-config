@@ -12,12 +12,6 @@ return {
           end,
         },
       },
-      sources = {
-        providers = {
-          -- Blink ranks snippets below LSP results by default; lift them up
-          snippets = { score_offset = 3 },
-        },
-      },
     },
   },
 }
