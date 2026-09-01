@@ -13,7 +13,7 @@
     ]
   },
   "Procedure": {
-    "prefix": "prc",
+    "prefix": "proc",
     "description": "Procedure declaration (tab through name/params/body)",
     "body": [
       "${1:name} :: proc(${2:params}) {",
@@ -22,7 +22,7 @@
     ]
   },
   "Procedure with return": {
-    "prefix": "prcr",
+    "prefix": "procr",
     "description": "Procedure with return type",
     "body": [
       "${1:name} :: proc(${2:params}) -> ${3:T} {",
@@ -30,13 +30,77 @@
       "}"
     ]
   },
+  "Procedure with return and error": {
+    "prefix": "procre",
+    "description": "Procedure returning (value, error) \u2014 error may be bool/enum/union",
+    "body": [
+      "${1:name} :: proc(${2:params}) -> (${3:res}: ${4:T}, err: ${5:Error}) {",
+      "\t$0",
+      "\treturn",
+      "}"
+    ]
+  },
   "Procedure with ok return": {
-    "prefix": "prcok",
+    "prefix": "procok",
     "description": "Procedure returning (value, ok) pair",
     "body": [
       "${1:name} :: proc(${2:params}) -> (${3:res}: ${4:T}, ok: bool) {",
       "\t$0",
       "\treturn ${3}, true",
+      "}"
+    ]
+  },
+  "Procedure with allocator": {
+    "prefix": "proca",
+    "description": "proc with allocator := context.allocator",
+    "body": [
+      "${1:name} :: proc(${2:params}, allocator := context.allocator) {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure with caller_location": {
+    "prefix": "procl",
+    "description": "proc with loc := #caller_location",
+    "body": [
+      "${1:name} :: proc(${2:params}, loc := #caller_location) {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure with allocator+loc": {
+    "prefix": "procal",
+    "description": "proc with allocator and caller_location",
+    "body": [
+      "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure return + allocator": {
+    "prefix": "procra",
+    "description": "proc with allocator, returning T",
+    "body": [
+      "${1:name} :: proc(${2:params}, allocator := context.allocator) -> ${3:T} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure return + loc": {
+    "prefix": "procrl",
+    "description": "proc with caller_location, returning T",
+    "body": [
+      "${1:name} :: proc(${2:params}, loc := #caller_location) -> ${3:T} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure return + allocator+loc": {
+    "prefix": "procral",
+    "description": "proc with allocator and caller_location, returning T",
+    "body": [
+      "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) -> ${3:T} {",
+      "\t$0",
       "}"
     ]
   },
@@ -108,16 +172,108 @@
   "or_return call": {
     "prefix": "orr",
     "description": "assign with or_return",
-    "body": ["${1:val} := ${2:call}($3) or_return$0"]
+    "body": [
+      "${1:val} := ${2:call}($3) or_return$0"
+    ]
   },
   "Test proc": {
-    "prefix": "tst",
-    "description": "@(test) procedure (import \"core:testing\")",
+    "prefix": "test",
+    "description": "Add a new @(test) procedure",
     "body": [
       "@(test)",
       "${1:test_name} :: proc(t: ^testing.T) {",
       "\t$0",
       "}"
+    ]
+  },
+  "Main proc": {
+    "prefix": "main",
+    "description": "main entrypoint",
+    "body": [
+      "main :: proc() {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "For range": {
+    "prefix": "forr",
+    "description": "for elem in iterable",
+    "body": [
+      "for ${2:elem} in ${1:iterable} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "For index": {
+    "prefix": "fori",
+    "description": "C-style indexed for loop",
+    "body": [
+      "for ${1:i} := ${2:0}; ${1} < ${3:n}; ${1} += 1 {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "println": {
+    "prefix": "fl",
+    "description": "fmt.println",
+    "body": [
+      "fmt.println(${1:\"text\"})$0"
+    ]
+  },
+  "printf": {
+    "prefix": "ff",
+    "description": "fmt.printf",
+    "body": [
+      "fmt.printf(\"${1:text}\\n\", ${2:args})$0"
+    ]
+  },
+  "Test file": {
+    "prefix": "testfile",
+    "description": "Start a new test file: package, core:testing import, first test",
+    "body": [
+      "package ${1:package_name}",
+      "",
+      "import \"core:testing\"",
+      "",
+      "@(test)",
+      "${2:test_name} :: proc(t: ^testing.T) {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "testing.expect": {
+    "prefix": "expect",
+    "description": "testing.expect(t, cond, msg)",
+    "body": [
+      "testing.expect(t, ${1:cond}, ${2:\"message\"})$0"
+    ]
+  },
+  "testing.expect_value": {
+    "prefix": "expectv",
+    "description": "testing.expect_value(t, actual, expected)",
+    "body": [
+      "testing.expect_value(t, ${1:actual}, ${2:expected})$0"
+    ]
+  },
+  "testing.expectf": {
+    "prefix": "expectf",
+    "description": "testing.expectf(t, cond, fmt, args)",
+    "body": [
+      "testing.expectf(t, ${1:cond}, \"${2:message %v}\", ${3:args})$0"
+    ]
+  },
+  "expect or return": {
+    "prefix": "expectr",
+    "description": "bail out of the test early when expect fails",
+    "body": [
+      "if !testing.expect(t, ${1:cond}, ${2:\"message\"}) do return$0"
+    ]
+  },
+  "expectf or return": {
+    "prefix": "expectfr",
+    "description": "bail out of the test early when expectf fails",
+    "body": [
+      "if !testing.expectf(t, ${1:cond}, \"${2:message %v}\", ${3:args}) do return$0"
     ]
   }
 }

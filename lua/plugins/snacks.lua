@@ -169,10 +169,12 @@ local file_sources = {
 --   lsp_symbols           → <leader>ss
 --   lsp_workspace_symbols → <leader>sS
 --
--- Each defaults to hiding tests; <a-t> toggles them back on — mirroring the
--- built-in <a-h> (hidden) / <a-i> (ignored) toggles, and like them the state
--- is PER-PICKER: it lives in `picker.opts.hide_tests` and resets to "hide"
--- every time you open a picker.
+-- Whether tests start hidden is a PER-PROJECT default, resolved from
+-- lua/config/projects.lua each time a picker opens (currently: hidden under
+-- ~/algebralabs, shown everywhere else). <a-t> flips the current picker —
+-- mirroring the built-in <a-h> (hidden) / <a-i> (ignored) toggles, and like
+-- them the state is PER-PICKER: it lives in `picker.opts.hide_tests` and
+-- resets to the project default every time you open a picker.
 --
 -- We piggyback on Snacks's own `toggles` machinery (config/init.lua): declaring
 -- `toggles = { hide_tests = ... }` on a source (a) auto-generates the
@@ -232,7 +234,17 @@ end
 -- title indicator. `toggle_hide_tests` is auto-created by Snacks from the
 -- `toggles` entry, so we only bind the key.
 local test_filter = {
-  hide_tests = true, -- default: filter on (per-picker; resets each open)
+  -- Default for hide_tests comes from the per-project rules in
+  -- lua/config/projects.lua. Snacks runs every config layer's `config(opts)`
+  -- during option resolution on each picker open (before toggle actions are
+  -- wired), so this tracks the picker's cwd / `:cd` — and only fills in the
+  -- nil case, so an explicit `hide_tests` passed at call time still wins.
+  config = function(opts)
+    if opts.hide_tests == nil then
+      opts.hide_tests = require("config.projects").get("hide_tests", opts.cwd)
+    end
+    return opts
+  end,
   -- Flask glyph (nf-fa-flask, U+F0C3) written as UTF-8 byte escapes so no
   -- non-ASCII byte lives in this file (a literal glyph kept getting stripped).
   -- Shown when hide_tests == true, i.e. whenever the test filter is active.

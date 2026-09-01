@@ -106,6 +106,21 @@ or commit one. Single-file programs work without it.
   Track [esmuellert/codediff.nvim#344](https://github.com/esmuellert/codediff.nvim/pull/344).
   When merged, enable the new "compact mode" option in the codediff plugin spec.
 
+## Per-Project Preferences
+
+`lua/config/projects.lua` is a centralized table of per-project settings: rules keyed by
+directory prefix (`~` expanded; a rule covers the directory and everything beneath it,
+deepest match wins), with fallbacks in `M.defaults`. Consumers call
+`require("config.projects").get(key, path)`. This deliberately avoids `exrc`/`.nvim.lua`
+and `.lazy.lua` (no trust prompts, no stray files in work repos) — revisit those if
+per-repo overrides in the repos themselves are ever wanted.
+
+Currently wired: `hide_tests` — the default for the snacks picker test-file filter in
+`lua/plugins/snacks.lua` (hidden under `~/algebralabs`, shown everywhere else; `<a-t>`
+still toggles per picker). It's resolved via a snacks source `config` function on every
+picker open (snacks runs each config layer's `config(opts)` during option resolution),
+keyed on the picker's `cwd`, so it tracks `:cd` and root-dir vs cwd pickers correctly.
+
 ## Key Conventions
 
 - Plugin specs follow LazyVim patterns: use `opts` tables/functions to merge with or override defaults. See `lua/plugins/example.lua` for reference patterns.
@@ -179,10 +194,18 @@ A previous config was also asymmetric: OSC 52 copy + `pbpaste` paste. OSC 52 cop
 Custom VSCode-format snippets live in `snippets/` (registered via `snippets/package.json`,
 auto-loaded by blink.cmp's default snippets source — no plugin config needed). Currently
 `react.json` (typescriptreact/javascriptreact) and `odin.json`. Tab / Shift-Tab jump
-between placeholders. Note: Odin also gets server-side snippets from ols
-(`proc`, `main`, `st`, `if`, `forr`, `fori`, `ff`, `fl`) via the LSP source — those only
-appear in identifier position and are not part of the blink snippets provider, so the
-`<A-s>` snippets-only menu (defined in `lua/plugins/blink.lua`) shows only file-based ones.
+between placeholders. `<A-s>` (insert mode) opens a snippets-only completion menu.
+
+Ranking (`lua/plugins/blink.lua`): snippets keep blink's default (below LSP) ranking,
+except a snippet whose prefix *exactly* equals the typed keyword gets a large boost so
+e.g. typing `proc` puts the `proc` snippet above the `proc` keyword. Avoid a blanket
+`score_offset` on the snippets provider — it buries LSP member completions.
+
+Odin: ols also ships 8 builtin snippets via LSP (`proc`, `main`, `st`, `if`, `forr`,
+`fori`, `ff`, `fl`), but they only appear in identifier position and disappear once the
+keyword is fully typed. They are filtered out client-side (LSP `transform_items` drops
+`kind == Snippet` items in Odin buffers) and replaced by equivalents in `odin.json`. ols's
+procedure auto-paren completions are `kind == Function` and unaffected.
 
 ## AI Tooling
 

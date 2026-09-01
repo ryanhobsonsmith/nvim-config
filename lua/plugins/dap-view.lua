@@ -47,10 +47,11 @@ return {
           hide = true,
         },
       },
-      -- Opens the view when a session starts and closes it when the last one
-      -- ends. This is what dap-ui's event_initialized/terminated/exited
-      -- listeners did in the extra; dap-view wires it internally.
-      auto_toggle = true,
+      -- Opens the view when a session starts, but doesn't auto-close it when
+      -- the session ends -- "true" did both and closing was unwanted (e.g.
+      -- <leader>td on Odin tests would hide an already-open console). Manual
+      -- close via <leader>du.
+      auto_toggle = "open",
     },
     config = function(_, opts)
       -- LazyVim's default config for a plugin is just setup(opts), so it has
