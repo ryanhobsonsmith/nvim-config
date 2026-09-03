@@ -32,8 +32,9 @@
   },
   "Procedure with return and error": {
     "prefix": "procre",
-    "description": "Procedure returning (value, error) \u2014 error may be bool/enum/union",
+    "description": "Procedure returning (value, error) — error may be enum/union",
     "body": [
+      "@(require_results)",
       "${1:name} :: proc(${2:params}) -> (${3:res}: ${4:T}, err: ${5:Error}) {",
       "\t$0",
       "\treturn",
@@ -44,9 +45,32 @@
     "prefix": "procok",
     "description": "Procedure returning (value, ok) pair",
     "body": [
+      "@(require_results)",
       "${1:name} :: proc(${2:params}) -> (${3:res}: ${4:T}, ok: bool) {",
       "\t$0",
       "\treturn ${3}, true",
+      "}"
+    ]
+  },
+  "Procedure with error only": {
+    "prefix": "proce",
+    "description": "Procedure returning only an error",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}) -> (err: ${3:Error}) {",
+      "\t$0",
+      "\treturn",
+      "}"
+    ]
+  },
+  "Procedure with ok only": {
+    "prefix": "procbok",
+    "description": "Procedure returning only ok: bool",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}) -> (ok: bool) {",
+      "\t$0",
+      "\treturn true",
       "}"
     ]
   },
@@ -55,24 +79,6 @@
     "description": "proc with allocator := context.allocator",
     "body": [
       "${1:name} :: proc(${2:params}, allocator := context.allocator) {",
-      "\t$0",
-      "}"
-    ]
-  },
-  "Procedure with caller_location": {
-    "prefix": "procl",
-    "description": "proc with loc := #caller_location",
-    "body": [
-      "${1:name} :: proc(${2:params}, loc := #caller_location) {",
-      "\t$0",
-      "}"
-    ]
-  },
-  "Procedure with allocator+loc": {
-    "prefix": "procal",
-    "description": "proc with allocator and caller_location",
-    "body": [
-      "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) {",
       "\t$0",
       "}"
     ]
@@ -86,11 +92,84 @@
       "}"
     ]
   },
+  "Procedure return + allocator + error": {
+    "prefix": "procrae",
+    "description": "proc with allocator, returning (value, Allocator_Error); delete the #optional_allocator_error placeholder if not wanted",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, allocator := context.allocator) -> (${3:res}: ${4:T}, err: ${5:mem.Allocator_Error}) ${6:#optional_allocator_error} {",
+      "\t$0",
+      "\treturn",
+      "}"
+    ]
+  },
+  "Procedure return + allocator + ok": {
+    "prefix": "procaok",
+    "description": "proc with allocator, returning (value, ok)",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, allocator := context.allocator) -> (${3:res}: ${4:T}, ok: bool) {",
+      "\t$0",
+      "\treturn ${3}, true",
+      "}"
+    ]
+  },
+  "Procedure allocator + error only": {
+    "prefix": "procae",
+    "description": "proc with allocator, returning only Allocator_Error",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, allocator := context.allocator) -> (err: ${3:mem.Allocator_Error}) ${4:#optional_allocator_error} {",
+      "\t$0",
+      "\treturn",
+      "}"
+    ]
+  },
+  "Procedure with caller_location": {
+    "prefix": "procl",
+    "description": "proc with loc := #caller_location",
+    "body": [
+      "${1:name} :: proc(${2:params}, loc := #caller_location) {",
+      "\t$0",
+      "}"
+    ]
+  },
   "Procedure return + loc": {
     "prefix": "procrl",
     "description": "proc with caller_location, returning T",
     "body": [
       "${1:name} :: proc(${2:params}, loc := #caller_location) -> ${3:T} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Procedure return + loc + error": {
+    "prefix": "procrle",
+    "description": "proc with caller_location, returning (value, error)",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, loc := #caller_location) -> (${3:res}: ${4:T}, err: ${5:Error}) {",
+      "\t$0",
+      "\treturn",
+      "}"
+    ]
+  },
+  "Procedure return + loc + ok": {
+    "prefix": "proclok",
+    "description": "proc with caller_location, returning (value, ok)",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, loc := #caller_location) -> (${3:res}: ${4:T}, ok: bool) {",
+      "\t$0",
+      "\treturn ${3}, true",
+      "}"
+    ]
+  },
+  "Procedure with allocator+loc": {
+    "prefix": "procal",
+    "description": "proc with allocator and caller_location",
+    "body": [
+      "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) {",
       "\t$0",
       "}"
     ]
@@ -101,6 +180,28 @@
     "body": [
       "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) -> ${3:T} {",
       "\t$0",
+      "}"
+    ]
+  },
+  "Procedure return + allocator+loc + error": {
+    "prefix": "procrale",
+    "description": "proc with allocator and caller_location, returning (value, Allocator_Error)",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) -> (${3:res}: ${4:T}, err: ${5:mem.Allocator_Error}) ${6:#optional_allocator_error} {",
+      "\t$0",
+      "\treturn",
+      "}"
+    ]
+  },
+  "Procedure return + allocator+loc + ok": {
+    "prefix": "procalok",
+    "description": "proc with allocator and caller_location, returning (value, ok)",
+    "body": [
+      "@(require_results)",
+      "${1:name} :: proc(${2:params}, allocator := context.allocator, loc := #caller_location) -> (${3:res}: ${4:T}, ok: bool) {",
+      "\t$0",
+      "\treturn ${3}, true",
       "}"
     ]
   },
