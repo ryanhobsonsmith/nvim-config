@@ -2,6 +2,18 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
+-- Load syntax/nasm.vim (NASM-specific directives/macros) instead of the stock
+-- generic syntax/asm.vim for .asm files. filetype/detect.lua's asm() feeds
+-- this value straight into `filetype` itself, so ft becomes "nasm", not
+-- "asm" — that's read at detection time, so setting it here (before any file
+-- opens) applies deterministically, unlike trying to override 'syntax' via a
+-- FileType autocmd later (races against runtime/syntax/syntax.vim's own
+-- FileType* listener that resyncs syntax to filetype — lost every time).
+-- There's no ftplugin/nasm.vim, so after/ftplugin/nasm.lua restores what
+-- ftplugin/asm.vim would otherwise have set (commentstring, matchit), and
+-- lua/plugins/asm.lua's asm_lsp filetypes include "nasm" to match.
+vim.g.asmsyntax = "nasm"
+
 -- Only run Prettier when the project has a Prettier config file. Combined with
 -- Biome's `require_cwd = true`, this prevents both formatters from running in
 -- the same buffer — each project uses whichever it has configured.

@@ -26,10 +26,27 @@ vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
 })
 
 -- Autosave on focus loss / buffer leave
+--
+-- Excludes hexview.nvim buffers (filetype "hexview") and anything with
+-- 'binary' set: hexview's own render (redraw_line -> nvim_buf_set_lines)
+-- flips 'modified' just from *displaying* a hex view, with zero real edits.
+-- Without this guard, merely alt-tabbing away while looking at a binary's
+-- hex view silently `:write`s it via hexview's BufWriteCmd -- harmless if
+-- hex_raw is in sync, but an unwanted write nonetheless, and one step in
+-- what corrupted a real build artifact once already (see lua/plugins/asm.lua
+-- for the fuller writeup and the actual fix, which stops these files from
+-- ever loading as text to begin with).
 vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
   group = vim.api.nvim_create_augroup("autosave_on_focus_lost", { clear = true }),
   callback = function()
-    if vim.bo.modified and not vim.bo.readonly and vim.bo.buftype == "" and vim.fn.expand("%") ~= "" then
+    if
+      vim.bo.modified
+      and not vim.bo.readonly
+      and not vim.bo.binary
+      and vim.bo.filetype ~= "hexview"
+      and vim.bo.buftype == ""
+      and vim.fn.expand("%") ~= ""
+    then
       vim.cmd("silent! write")
     end
   end,
