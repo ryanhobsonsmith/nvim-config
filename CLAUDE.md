@@ -99,6 +99,29 @@ On top of the extra, this config adds:
 with `bear -- make`, have the build emit it (CMake: `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`),
 or commit one. Single-file programs work without it.
 
+## TypeScript Expandable Hover
+
+`K` in a TypeScript buffer runs `require("config.ts_hover").hover()` (wired via `keys` on the
+`tsgo`/`vtsls` server specs in `lua/plugins/typescript.lua`). While the hover is visible, `+`
+expands type aliases one level and `-` collapses; moving the cursor closes it and restores
+the stock `+`/`-` motions.
+
+- **tsgo path** (`lua/config/ts_hover.lua`): tsgo implements TS 5.9's expandable hover over
+  plain LSP. It only does so when the client advertises
+  `capabilities.experimental.hoverVerbosityLevel = true` (set on the `tsgo` server spec);
+  then `textDocument/hover` accepts `verbosityLevel` and the reply carries
+  `canIncreaseVerbosity`. Rendering goes through noice's hover message so it looks like
+  regular hover. Two noice quirks are worked around: `Message:bufs()` is broken (self/colon
+  bug), so float buffers are found via `wins()`; and re-rendering a *focused* nui popup
+  breaks, so `+`/`-` pressed inside the float first hop back to the source window and
+  re-request after noice's autohide settles.
+- **vtsls path**: `ts-expand-hover.nvim` (uses vtsls's `typescript.tsserverRequest`
+  command, which tsgo lacks). Only enabled when `vim.g.lazyvim_ts_lsp == "vtsls"`;
+  `config.ts_hover` hands off to it when no tsgo client is attached.
+
+Capabilities are negotiated at LSP startup, so changes here need a Neovim restart, not
+just `:LspRestart` of a running config that predates them.
+
 ## Pending Follow-ups
 
 - **codediff.nvim folding** (`lua/plugins/diffview.lua`): We swapped diffview for
