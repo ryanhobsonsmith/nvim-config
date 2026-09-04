@@ -122,6 +122,27 @@ the stock `+`/`-` motions.
 Capabilities are negotiated at LSP startup, so changes here need a Neovim restart, not
 just `:LspRestart` of a running config that predates them.
 
+## AI Doc Comments (DocGen)
+
+`lua/config/docgen.lua` generates a doc comment for the function under the cursor.
+`:DocGen [lite|normal|full]` or `<leader>cg` (picker; also works on a visual range). Levels:
+`lite` is a one-line summary, `normal` adds Inputs/Returns, `full` documents it as a public
+library API with Example/Output. Registered from `keymaps.lua`.
+
+- **Detection:** Tree-sitter. Walks up from the cursor to a node type in the language's
+  `decl_types`; an adjacent comment (block, or a run of line comments) directly above is
+  treated as the existing doc and replaced, and passed to the model as a hint. Odin's
+  `procedure_declaration` node includes `@(...)` attributes, so the comment lands above them.
+- **Backend:** plain `curl` via `vim.system` to an OpenAI-compatible chat endpoint (`M.provider`),
+  Celeris by default with the key read from `~/.config/celeris/api-key` at call time. Point
+  `url`/`model` at LM Studio or Ollama to switch. Deliberately not an agent CLI (opencode
+  startup cost, MCP servers, tool loops) for a one-shot completion. ~0.3s round trip on Celeris.
+- **Context:** whole file when ≤ `max_file_lines` (400), else a `window` of 60 lines around
+  the function. The request aborts insertion if the buffer changed while in flight.
+- **Adding a language:** add an entry to `M.languages` keyed by filetype with `decl_types`,
+  `doc_types`, a `style` description, per-level prompts (with a real-world example of the
+  shape), and optionally `wrap` to add delimiters when the model omits them. Only Odin so far.
+
 ## Pending Follow-ups
 
 - **codediff.nvim folding** (`lua/plugins/diffview.lua`): We swapped diffview for

@@ -30,6 +30,29 @@ return {
         end,
         desc = "Step Out",
       },
+      -- LazyVim's <leader>da wraps config.args in a function that prompts, and
+      -- stores that wrapper in the opts nvim-dap keeps for run_last(), so
+      -- <leader>dl re-prompted every time. nvim-dap keeps the config and opts
+      -- tables by reference, so this version prompts once, writes the parsed
+      -- args back into the config, and drops the hook — run_last() then reuses
+      -- the args silently. Press <leader>da again to change them; the prompt
+      -- pre-fills with the previous value.
+      {
+        "<leader>da",
+        function()
+          local opts = {}
+          opts.before = function(config)
+            local prev = type(config.args) == "function" and (config.args() or {}) or config.args or {}
+            local default = type(prev) == "table" and table.concat(prev, " ") or prev
+            local input = vim.fn.expand(vim.fn.input("Run with args: ", default))
+            config.args = require("dap.utils").splitstr(input)
+            opts.before = nil
+            return config
+          end
+          require("dap").continue(opts)
+        end,
+        desc = "Run with Args (remembered by Run Last)",
+      },
       {
         "<leader>dq",
         function()

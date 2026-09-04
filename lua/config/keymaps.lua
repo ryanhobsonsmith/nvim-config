@@ -61,3 +61,6 @@ vim.api.nvim_create_autocmd("User", {
     end)
   end,
 })
+
+-- AI doc-comment generation: :DocGen [lite|normal|full], <leader>cg picker. See lua/config/docgen.lua.
+require("config.docgen").setup()
