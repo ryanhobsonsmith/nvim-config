@@ -126,22 +126,36 @@ just `:LspRestart` of a running config that predates them.
 
 `lua/config/docgen.lua` generates a doc comment for the function under the cursor.
 `:DocGen [lite|normal|full]` or `<leader>cg` (picker; also works on a visual range). Levels:
-`lite` is a one-line summary, `normal` adds Inputs/Returns, `full` documents it as a public
-library API with Example/Output. Registered from `keymaps.lua`.
+`lite` is a one-line summary, `normal` adds parameters/returns, `full` documents it as a public
+library API with examples. Registered from `keymaps.lua`.
 
-- **Detection:** Tree-sitter. Walks up from the cursor to a node type in the language's
-  `decl_types`; an adjacent comment (block, or a run of line comments) directly above is
-  treated as the existing doc and replaced, and passed to the model as a hint. Odin's
-  `procedure_declaration` node includes `@(...)` attributes, so the comment lands above them.
+Supported filetypes and the convention each follows: `odin` (core-library `/* */` blocks with
+Inputs/Returns/Example/Output), `typescript`/`typescriptreact` (JSDoc, no brace types),
+`javascript`/`javascriptreact` (JSDoc with `{type}`), `go` (`//` prose starting with the name),
+`c` (Doxygen `@brief`/`@param`/`@return`), `python` (Google-style PEP 257 docstring, placed
+*inside* the body).
+
+- **Detection:** Tree-sitter. Walks up from the cursor to a node in the language's `decl_types`,
+  passing it through an optional `resolve` hook (TS climbs to `export_statement` and only
+  accepts arrow/function expressions bound to a name; C accepts a `declaration` only if it holds
+  a `function_declarator`; Python unwraps `decorated_definition`). If no ancestor matches, it
+  searches downward for a declaration starting on the cursor row, so the cursor can sit on
+  `export`, `const`, or a decorator. With placement `above` an adjacent run of comment nodes
+  is the existing doc and gets replaced; with placement `inside` (Python) the first body
+  statement is checked for a string. The old doc is passed to the model as a hint.
 - **Backend:** plain `curl` via `vim.system` to an OpenAI-compatible chat endpoint (`M.provider`),
   Celeris by default with the key read from `~/.config/celeris/api-key` at call time. Point
   `url`/`model` at LM Studio or Ollama to switch. Deliberately not an agent CLI (opencode
   startup cost, MCP servers, tool loops) for a one-shot completion. ~0.3s round trip on Celeris.
 - **Context:** whole file when ≤ `max_file_lines` (400), else a `window` of 60 lines around
   the function. The request aborts insertion if the buffer changed while in flight.
-- **Adding a language:** add an entry to `M.languages` keyed by filetype with `decl_types`,
-  `doc_types`, a `style` description, per-level prompts (with a real-world example of the
-  shape), and optionally `wrap` to add delimiters when the model omits them. Only Odin so far.
+- **Reply cleanup:** fences and `<think>` blocks stripped, trailing whitespace removed, then
+  the language's `wrap` adds delimiters if the model omitted them. The Python wrapper also
+  truncates after the first closing `"""` and appends one if missing, since small models
+  sometimes tack sections on after the docstring or forget to close it.
+- **Adding a language:** add an entry to `M.languages` keyed by filetype with `name`,
+  `decl_types`, optional `resolve`, `doc_types` (or `placement = "inside"`), a `style`
+  description, per-level prompts each with a real-world example of the shape, and a `wrap`.
 
 ## Pending Follow-ups
 
