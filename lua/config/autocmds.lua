@@ -27,15 +27,27 @@ vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
 
 -- Autosave on focus loss / buffer leave
 --
+-- IMPORTANT: this `:write` runs *inside* an autocmd callback, and autocmds
+-- don't nest by default (`:h autocmd-nested`), so it fires NO BufWriteCmd /
+-- BufWritePre / BufWritePost. Any buffer whose file is "virtual" and owned by
+-- a BufWriteCmd handler gets Neovim's plain writer instead, which dumps the
+-- buffer's *display* text over the real file. Confirmed 2026-09-11: snacks
+-- image buffers (filetype "image", a png opened in nvim) are flagged
+-- 'modified' by snacks's own placeholder rendering, so leaving one truncated
+-- the png to 0 bytes. Same class of bug as the hexview.nvim incident below.
+-- Hence the filetype guards. If another BufWriteCmd-backed buffer type shows
+-- up, add it here -- or switch this autocmd to `nested = true`, which makes
+-- the write behave exactly like `:w` (BufWriteCmd honored, but conform's
+-- format-on-save and LSP didSave then also run on every autosave).
+--
 -- Excludes hexview.nvim buffers (filetype "hexview") and anything with
 -- 'binary' set: hexview's own render (redraw_line -> nvim_buf_set_lines)
 -- flips 'modified' just from *displaying* a hex view, with zero real edits.
 -- Without this guard, merely alt-tabbing away while looking at a binary's
--- hex view silently `:write`s it via hexview's BufWriteCmd -- harmless if
--- hex_raw is in sync, but an unwanted write nonetheless, and one step in
--- what corrupted a real build artifact once already (see lua/plugins/asm.lua
--- for the fuller writeup and the actual fix, which stops these files from
--- ever loading as text to begin with).
+-- hex view silently `:write`s it -- and per the above, NOT via hexview's
+-- BufWriteCmd -- one step in what corrupted a real build artifact once
+-- already (see lua/plugins/asm.lua for the fuller writeup and the actual
+-- fix, which stops these files from ever loading as text to begin with).
 vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
   group = vim.api.nvim_create_augroup("autosave_on_focus_lost", { clear = true }),
   callback = function()
@@ -44,6 +56,7 @@ vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
       and not vim.bo.readonly
       and not vim.bo.binary
       and vim.bo.filetype ~= "hexview"
+      and vim.bo.filetype ~= "image"
       and vim.bo.buftype == ""
       and vim.fn.expand("%") ~= ""
     then

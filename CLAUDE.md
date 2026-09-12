@@ -177,6 +177,17 @@ keyed on the picker's `cwd`, so it tracks `:cd` and root-dir vs cwd pickers corr
 
 LazyVim sets `vim.diagnostic.config` inside `nvim-lspconfig`'s `config` function, which runs *after* `VeryLazy`. Any `vim.diagnostic.config({...})` call in `keymaps.lua` or `autocmds.lua` gets clobbered once LSP loads. To change defaults like `virtual_text`, override `opts.diagnostics.*` in `lua/plugins/lsp.lua` — that's the source of truth. Runtime toggles (e.g. Snacks toggles that flip state on demand) still work fine since they fire after setup.
 
+### Autosave writes bypass `BufWriteCmd` (autocmds don't nest)
+
+The FocusLost/BufLeave autosave in `lua/config/autocmds.lua` calls `:write` from inside an
+autocmd callback. Autocmds don't nest by default, so that write triggers no
+`BufWriteCmd`/`BufWritePre`/`BufWritePost`: a buffer whose file is owned by a `BufWriteCmd`
+handler (snacks image buffers, hexview, anything similar) gets Neovim's plain writer instead
+and the file is overwritten with the buffer's display text. This truncated a png to 0 bytes
+on 2026-09-11 (snacks's placeholder rendering flags image buffers `modified`). The autosave
+guards on `filetype` for known cases; extend it when adding another virtual-file buffer
+type, or switch the autocmd to `nested = true` (then format-on-save also runs on autosave).
+
 ### `keymaps.lua` is eager-loaded *before* lazy.nvim in `init.lua`
 
 `init.lua` does `require("config.keymaps")` *before* `require("config.lazy")`. This is intentional — multi-char maps like `gyp` need to be live from the first keystroke, and waiting for LazyVim's VeryLazy reload leaves a startup window where `p` pastes. Two consequences to keep in mind:
@@ -250,6 +261,39 @@ Odin: ols also ships 8 builtin snippets via LSP (`proc`, `main`, `st`, `if`, `fo
 keyword is fully typed. They are filtered out client-side (LSP `transform_items` drops
 `kind == Snippet` items in Odin buffers) and replaced by equivalents in `odin.json`. ols's
 procedure auto-paren completions are `kind == Function` and unaffected.
+
+## Images
+
+`lua/plugins/image.lua` enables snacks.image (Kitty graphics protocol). Opening a
+png/jpg/gif/webp/pdf/... renders it in the buffer; markdown/html/tsx and friends render
+referenced images inline. SVGs deliberately stay out of `formats` so they open as editable
+XML; `:ImageView` (`<leader>iv`) previews the current file as an image in a float, and
+`:ImageSource` does the reverse for intercepted formats (reopen a png/pdf as text). SVG/PDF
+rasterize through ImageMagick (`convert`, IM6 is fine; IM6's builtin SVG renderer ignores
+CSS/filters, so complex SVGs may look off -- `librsvg2-bin` or ImageMagick 7 fixes that).
+
+The stack is tmux + ssh + ghostty, and each layer needs something:
+
+- **tmux**: graphics escapes are wrapped in DCS passthrough (`allow-passthrough` is on in
+  `~/.tmux.conf`; snacks additionally sets it to `all` on its own pane) and images are placed
+  with unicode placeholders so tmux treats them as text.
+- **ssh**: snacks detects `SSH_CONNECTION` and sends image bytes inline (kitty `t=d`) instead
+  of by filename. Same tmux-reattach caveat as the clipboard: a tmux session created before
+  the ssh connection may not see `SSH_CONNECTION`; `SNACKS_SSH=true` forces it.
+- **ghostty detection**: inside tmux snacks reads `#{client_termname}`, and `~/.ssh/config`
+  forces `SetEnv TERM=xterm-256color`, so over ssh it sees `xterm-256color` and would report
+  "terminal does not support the kitty graphics protocol". `image.lua` sets
+  `SNACKS_GHOSTTY=true` unconditionally to override. Dropping the `SetEnv` (the
+  `xterm-ghostty` terminfo is installed on this host) would make detection work on its own.
+
+Known snacks bugs worked around in `image.lua` (upstream main as of 2026-09): a file-viewer
+placement is `hide()`-den when its window goes away and never shown again, so switching back
+to an image buffer rendered blank (patched: `hide` is a no-op for `filetype=image`). Don't
+"fix" it by re-attaching: closing a placement mid-conversion leaves its spinner timer alive,
+clearing the buffer's extmarks forever.
+
+`:checkhealth snacks` shows what was detected. `SNACKS_<ENV>=true|false` overrides any
+environment (`GHOSTTY`, `TMUX`, `SSH`, `KITTY`, ...).
 
 ## AI Tooling
 
