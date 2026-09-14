@@ -122,40 +122,69 @@ the stock `+`/`-` motions.
 Capabilities are negotiated at LSP startup, so changes here need a Neovim restart, not
 just `:LspRestart` of a running config that predates them.
 
-## AI Doc Comments (DocGen)
+## Quill AI (`lua/quill-ai/`)
 
-`lua/config/docgen.lua` generates a doc comment for the function under the cursor.
-`:DocGen [lite|normal|full]` or `<leader>cg` (picker; also works on a visual range). Levels:
-`lite` is a one-line summary, `normal` adds parameters/returns, `full` documents it as a public
-library API with examples. Registered from `keymaps.lua`.
+A small local plugin for fast, targeted AI edits. Commands only, no keymaps:
 
-Supported filetypes and the convention each follows: `odin` (core-library `/* */` blocks with
-Inputs/Returns/Example/Output), `typescript`/`typescriptreact` (JSDoc, no brace types),
-`javascript`/`javascriptreact` (JSDoc with `{type}`), `go` (`//` prose starting with the name),
-`c` (Doxygen `@brief`/`@param`/`@return`), `python` (Google-style PEP 257 docstring, placed
-*inside* the body).
+- `:QuillDocs [lite|normal|full]` — doc comment for the function under the cursor (or a
+  visual range). No level opens a picker. `lite` = one-line summary, `normal` = summary
+  plus parameters/returns, `full` = public-library API docs with examples.
+- `:QuillFast [instruction]` — rewrite the visual selection (or the whole file when there
+  is no range) per the instruction. No instruction opens `vim.ui.input`. Whole file is
+  always sent as context; the model returns only the region's replacement.
+- `:QuillCancel` — kill the in-flight request. One request at a time; a second one is
+  refused until the first finishes or is cancelled.
 
-- **Detection:** Tree-sitter. Walks up from the cursor to a node in the language's `decl_types`,
-  passing it through an optional `resolve` hook (TS climbs to `export_statement` and only
-  accepts arrow/function expressions bound to a name; C accepts a `declaration` only if it holds
-  a `function_declarator`; Python unwraps `decorated_definition`). If no ancestor matches, it
-  searches downward for a declaration starting on the cursor row, so the cursor can sit on
-  `export`, `const`, or a decorator. With placement `above` an adjacent run of comment nodes
-  is the existing doc and gets replaced; with placement `inside` (Python) the first body
-  statement is checked for a string. The old doc is passed to the model as a hint.
-- **Backend:** plain `curl` via `vim.system` to an OpenAI-compatible chat endpoint (`M.provider`),
-  Celeris by default with the key read from `~/.config/celeris/api-key` at call time. Point
-  `url`/`model` at LM Studio or Ollama to switch. Deliberately not an agent CLI (opencode
-  startup cost, MCP servers, tool loops) for a one-shot completion. ~0.3s round trip on Celeris.
-- **Context:** whole file when ≤ `max_file_lines` (400), else a `window` of 60 lines around
-  the function. The request aborts insertion if the buffer changed while in flight.
-- **Reply cleanup:** fences and `<think>` blocks stripped, trailing whitespace removed, then
-  the language's `wrap` adds delimiters if the model omitted them. The Python wrapper also
-  truncates after the first closing `"""` and appends one if missing, since small models
-  sometimes tack sections on after the docstring or forget to close it.
-- **Adding a language:** add an entry to `M.languages` keyed by filetype with `name`,
-  `decl_types`, optional `resolve`, `doc_types` (or `placement = "inside"`), a `style`
-  description, per-level prompts each with a real-world example of the shape, and a `wrap`.
+**Configuration lives in `lua/plugins/quill-ai.lua` and nowhere else.** It is a lazy.nvim
+`virtual = true` spec (the code is already on the rtp under `lua/quill-ai/`, lazy only runs
+`setup(opts)`); when the plugin is extracted to its own repo, swap the name for the GitHub
+slug and keep `opts`. `opts.tiers.<name>` = `{ url, model, api_key_file | api_key_env,
+timeout_s, max_tokens, temperature, apply }` where `apply` is `"direct"` (replace in place,
+one undo step) or `"diff"` (side-by-side preview: `<CR>`/`ga` accept, `q` reject).
+`opts.commands.<tier> = "CommandName"` creates the refactor command for that tier. Only
+`fast` (Celeris, key read from `~/.config/celeris/api-key` at call time, ~0.3s) exists;
+slower OpenAI tiers were deliberately deferred. Defaults are in `lua/quill-ai/config.lua`.
+
+Modules: `init.lua` (setup, commands, in-flight tracking), `config.lua`, `client.lua`
+(one-shot `curl` via `vim.system`; reports `finish_reason == "length"` as `truncated`;
+kill → `"cancelled"`), `util.lua` (`notify`, `clean_reply`), `docs.lua`, `refactor.lua`,
+`diff.lua`, `langs/` (one spec per language plus `wrap.lua` delimiter helpers and
+`jsdoc.lua` shared by TS/JS). Not an agent CLI on purpose: opencode/celeris-cli startup,
+MCP servers, and tool loops are the wrong shape for a one-shot completion.
+
+**Docs detection:** Tree-sitter. Walks up from the cursor to a node in the language's
+`decl_types`, through an optional `resolve` hook (TS climbs to `export_statement` and only
+accepts arrow/function expressions bound to a name; C accepts a `declaration` only if it
+holds a `function_declarator`; Python unwraps `decorated_definition`). If no ancestor
+matches, it searches downward for a declaration starting on the cursor row, so the cursor
+can sit on `export`, `const`, or a decorator. Placement `above`: an adjacent run of comment
+nodes is the existing doc and gets replaced. Placement `inside` (Python): the first body
+statement is checked for a docstring. The old doc is passed to the model as a hint.
+Supported: `odin` (core-library `/* */` with Inputs/Returns/Example/Output),
+`typescript`/`typescriptreact` (JSDoc, no brace types), `javascript`/`javascriptreact`
+(JSDoc with `{type}`), `go` (`//` prose starting with the name), `c` (Doxygen), `python`
+(Google-style PEP 257). Whole file is context when ≤ `docs.max_file_lines` (400), else a
+`docs.window` of 60 lines around the function.
+
+**Refactor prompt:** the file is sent with the region wrapped in `<<<REGION>>>` /
+`<<<END REGION>>>` marker lines (alternate markers are chosen if the file contains those
+strings) and the model is told to return only the region's new contents. `sanitize()`
+strips fences, `<think>` blocks, and leading chatter, extracts between markers if the model
+echoed them, and if a whole file came back for a partial region strips the untouched
+prefix/suffix when they match exactly. When that fails, or the reply was truncated, the
+result is shown as a diff preview instead of applied blind, whatever the tier's `apply`.
+Insertion is skipped if the buffer's changedtick moved while the request was in flight.
+
+**Reply cleanup for docs:** the language's `wrap` adds delimiters if the model omitted
+them. The Python wrapper also truncates after the first closing `"""` and appends one if
+missing, since small models sometimes tack sections on after the docstring or forget to
+close it.
+
+**Adding a language:** create `lua/quill-ai/langs/<ft>.lua` returning a spec (`name`,
+`decl_types`, optional `resolve`, `doc_types` or `placement = "inside"`, `style`, per-level
+prompts each with a real-world example of the shape, `wrap`), then add it to `modules` (and
+any filetype alias) in `langs/init.lua`. **Adding a tier:** add `opts.tiers.<name>` and
+`opts.commands.<name>` in `lua/plugins/quill-ai.lua`.
 
 ## Pending Follow-ups
 

@@ -8,6 +8,11 @@ return {
         virtual_lines = { current_line = true },
       },
       servers = {
+        -- vscode-html-language-server (mason: html-lsp). nvim-lspconfig's default
+        -- init_options enable embeddedLanguages css/javascript, so <style> and
+        -- <script> blocks get same-file definition/references/symbols/hover and
+        -- completion. Snippet capability comes from blink.cmp via LazyVim.
+        html = {},
         ["*"] = {
           -- Free up insert-mode <c-k> for blink.cmp's completion-menu
           -- navigation (see lua/plugins/blink.lua). LazyVim binds this to
