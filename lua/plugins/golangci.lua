@@ -4,6 +4,14 @@
 -- diagnostics ("could not import ...", "undefined: ..."); the LSP route roots
 -- itself at the nearest go.work/go.mod per buffer. See
 -- https://github.com/LazyVim/LazyVim/discussions/6676
+
+-- The lang.go extra is gated on `go` in lua/config/lazy.lua; mirror that here.
+-- mason builds golangci-lint-langserver with `go install`, so on a machine
+-- without a Go toolchain the install fails on every startup.
+if vim.fn.executable("go") ~= 1 then
+  return {}
+end
+
 return {
   {
     "mfussenegger/nvim-lint",
