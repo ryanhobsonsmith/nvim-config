@@ -132,6 +132,8 @@ A small local plugin for fast, targeted AI edits. Commands only, no keymaps:
 - `:QuillFast [instruction]` — rewrite the visual selection (or the whole file when there
   is no range) per the instruction. No instruction opens `vim.ui.input`. Whole file is
   always sent as context; the model returns only the region's replacement.
+- `:Quill [instruction]` — identical to `:QuillFast` but on the `normal` tier: OpenAI
+  `gpt-6-luna` billed to the ChatGPT plan through the Codex CLI login (no API key).
 - `:QuillCancel` — kill the in-flight request. One request at a time; a second one is
   refused until the first finishes or is cancelled.
 
@@ -141,9 +143,27 @@ A small local plugin for fast, targeted AI edits. Commands only, no keymaps:
 slug and keep `opts`. `opts.tiers.<name>` = `{ url, model, api_key_file | api_key_env,
 timeout_s, max_tokens, temperature, apply }` where `apply` is `"direct"` (replace in place,
 one undo step) or `"diff"` (side-by-side preview: `<CR>`/`ga` accept, `q` reject).
-`opts.commands.<tier> = "CommandName"` creates the refactor command for that tier. Only
-`fast` (Celeris, key read from `~/.config/celeris/api-key` at call time, ~0.3s) exists;
-slower OpenAI tiers were deliberately deferred. Defaults are in `lua/quill-ai/config.lua`.
+`opts.commands.<tier> = "CommandName"` creates the refactor command for that tier. Tiers:
+`fast` (Celeris, key read from `~/.config/celeris/api-key` at call time, ~0.3s) and
+`normal` (`auth = "codex"`). For plain API-key tiers, current OpenAI models reject
+`max_tokens` and non-default `temperature`, hence the per-tier
+`max_tokens_field = "max_completion_tokens"` and `temperature = false` (omits the field).
+Defaults are in `lua/quill-ai/config.lua`.
+
+**Codex auth (`auth = "codex"`):** OpenAI allows ChatGPT subscriptions to be used from
+third-party harnesses (Cline, OpenCode, pi, OpenClaw all do this). The credential is the
+OAuth access token the Codex CLI stores in `~/.codex/auth.json` (`tokens.access_token`,
+`tokens.account_id`), not an API key. Requests go to
+`https://chatgpt.com/backend-api/codex/responses` as the Responses API with `stream=true`
+and `store=false` (both mandatory), headers `chatgpt-account-id`, `OpenAI-Beta:
+responses=experimental`, and `originator`; the system prompt goes in `instructions`, no
+token cap or temperature is accepted, and only bare Codex model IDs work. The full SSE body
+is collected by curl and parsed by `client.parse_responses_sse` (text from
+`response.completed`'s output, falling back to concatenated `output_text.delta`s;
+`response.incomplete` → `truncated`). The plugin deliberately **never refreshes** the token:
+OpenAI rotates refresh tokens on use and its CI docs warn that two refreshers on one
+`auth.json` invalidate each other's login. An expired token (checked from the JWT `exp`) or
+a 401 produces a notice to run any `codex` command, which refreshes the bundle.
 
 Modules: `init.lua` (setup, commands, in-flight tracking), `config.lua`, `client.lua`
 (one-shot `curl` via `vim.system`; reports `finish_reason == "length"` as `truncated`;

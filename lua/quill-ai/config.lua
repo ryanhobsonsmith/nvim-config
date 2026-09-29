@@ -1,13 +1,17 @@
 local M = {}
 
 ---@class QuillTier
----@field url string OpenAI-compatible chat completions endpoint
+---@field url string chat-completions endpoint, or the Codex responses endpoint when auth == "codex"
 ---@field model string
----@field api_key_file string|nil read at call time
+---@field auth "key"|"codex"|nil "codex" = reuse the Codex CLI's ChatGPT login (~/.codex/auth.json)
+---@field auth_file string|nil override for the Codex auth.json path
+---@field originator string|nil `originator` header sent to the Codex backend
+---@field api_key_file string|nil read at call time (auth == "key")
 ---@field api_key_env string|nil environment variable holding the key (takes precedence)
 ---@field timeout_s integer
 ---@field max_tokens integer
----@field temperature number
+---@field temperature number|false false omits the field (models that only accept the default)
+---@field max_tokens_field string|nil "max_tokens" (default) or "max_completion_tokens"
 ---@field apply "direct"|"diff" how refactor results land in the buffer
 
 M.defaults = {
@@ -22,10 +26,21 @@ M.defaults = {
       temperature = 0,
       apply = "direct",
     },
+    -- ChatGPT plan through the Codex CLI login: no API key, Responses API,
+    -- no token cap or temperature (the backend rejects both).
+    normal = {
+      auth = "codex",
+      url = "https://chatgpt.com/backend-api/codex/responses",
+      model = "gpt-6-luna",
+      auth_file = "~/.codex/auth.json",
+      timeout_s = 180,
+      apply = "direct",
+    },
   },
   -- Refactor command name per tier. Adding a tier = a `tiers` entry + a line here.
   commands = {
     fast = "QuillFast",
+    normal = "Quill",
   },
   docs = {
     tier = "fast",

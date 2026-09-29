@@ -1,7 +1,8 @@
 -- quill-ai: fast, targeted AI edits from inside Neovim.
 --
 --   :QuillDocs [lite|normal|full]   doc comment for the function under the cursor
---   :QuillFast [instruction]        rewrite the selection (or whole file) per instruction
+--   :QuillFast [instruction]        rewrite the selection (or whole file) per instruction (fast tier)
+--   :Quill [instruction]            same, with the normal tier (ChatGPT plan via Codex login)
 --   :QuillCancel                    kill the in-flight request
 --
 -- Model, endpoint, and key configuration lives in the `opts` passed to
