@@ -261,7 +261,6 @@ function M.run(tier_name, instruction, range)
   }
   local tick = vim.api.nvim_buf_get_changedtick(bufnr)
 
-  util.notify(("%s: %s…"):format(tier_name, instruction:sub(1, 60)))
   local handle = client.request(tier, M.build_messages(ctx, instruction), function(reply, rerr)
     quill.track(nil)
     if not reply then
@@ -288,7 +287,7 @@ function M.run(tier_name, instruction, range)
     end
     M.apply(ctx, lines, mode, tick)
   end)
-  quill.track(handle)
+  quill.track(handle, { label = tier_name .. ": " .. instruction:sub(1, 40), bufnr = bufnr, region = region })
 end
 
 return M

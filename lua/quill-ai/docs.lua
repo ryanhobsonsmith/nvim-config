@@ -260,7 +260,6 @@ function M.generate(level, range)
   end
 
   local tick = vim.api.nvim_buf_get_changedtick(bufnr)
-  util.notify("generating " .. level .. " docs…")
 
   local handle = client.request(tier, build_messages(bufnr, lang, level, target), function(reply, rerr)
     quill.track(nil)
@@ -285,7 +284,7 @@ function M.generate(level, range)
     vim.api.nvim_buf_set_lines(bufnr, target.insert_at, target.replace_to, false, lines)
     util.notify((replaced and "replaced" or "inserted") .. " " .. level .. " docs")
   end)
-  quill.track(handle)
+  quill.track(handle, { label = level .. " docs", bufnr = bufnr, region = { target.insert_at, target.decl_end } })
 end
 
 --- Prompts for a level with vim.ui.select, then generates.

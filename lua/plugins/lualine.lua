@@ -12,6 +12,23 @@ return {
       if ok and type(neo_review.lualine) == "function" then
         table.insert(opts.sections.lualine_x, neo_review.lualine())
       end
+
+      -- quill-ai in-flight status (spinner, label, elapsed); empty when idle.
+      -- The plugin fires `User QuillStatus` on every tick, so refresh on that
+      -- instead of relying on lualine's own timer.
+      table.insert(opts.sections.lualine_x, {
+        function()
+          local okq, quill = pcall(require, "quill-ai")
+          return okq and quill.status() or ""
+        end,
+        color = "Special",
+      })
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "QuillStatus",
+        callback = function()
+          require("lualine").refresh({ place = { "statusline" } })
+        end,
+      })
       return opts
     end,
   },

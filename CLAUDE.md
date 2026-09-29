@@ -165,7 +165,16 @@ OpenAI rotates refresh tokens on use and its CI docs warn that two refreshers on
 `auth.json` invalidate each other's login. An expired token (checked from the JWT `exp`) or
 a 401 produces a notice to run any `codex` command, which refreshes the bundle.
 
-Modules: `init.lua` (setup, commands, in-flight tracking), `config.lua`, `client.lua`
+**In-flight indicator** (`indicator.lua`): started/stopped by `init.track()` so every
+completion, error, and cancel path clears it. Shows a spinner, label, and elapsed seconds
+via `vim.notify` with the fixed `quill-ai` id (`timeout = false`, replaced in place by
+Snacks), dims the target lines with `QuillPending` (default link `DiffChange`) and puts the
+same text as eol virtual text on the first line (`QuillPendingLabel`), and fires `User
+QuillStatus` each tick. `require("quill-ai").status()` returns the text for statuslines;
+`lua/plugins/lualine.lua` adds it to `lualine_x` and refreshes on that autocmd. Elapsed
+time matters more than the spinner: the normal tier can take tens of seconds.
+
+Modules: `init.lua` (setup, commands, in-flight tracking), `indicator.lua`, `config.lua`, `client.lua`
 (one-shot `curl` via `vim.system`; reports `finish_reason == "length"` as `truncated`;
 kill → `"cancelled"`), `util.lua` (`notify`, `clean_reply`), `docs.lua`, `refactor.lua`,
 `diff.lua`, `langs/` (one spec per language plus `wrap.lua` delimiter helpers and

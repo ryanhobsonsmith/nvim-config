@@ -15,13 +15,27 @@ local M = {}
 
 local active = nil ---@type vim.SystemObj|nil
 
---- Records (or clears, with nil) the in-flight request handle.
-function M.track(handle)
+--- Records the in-flight request handle and starts the indicator, or (with
+--- nil) clears both. `opts` = { label, bufnr, region } for the indicator.
+---@param handle vim.SystemObj|nil
+---@param opts {label: string, bufnr: integer|nil, region: {[1]: integer, [2]: integer}|nil}|nil
+function M.track(handle, opts)
+  local indicator = require("quill-ai.indicator")
   active = handle
+  if handle and opts then
+    indicator.start(opts)
+  else
+    indicator.stop()
+  end
 end
 
 function M.busy()
   return active ~= nil
+end
+
+--- Statusline text while a request is active, else "".
+function M.status()
+  return require("quill-ai.indicator").status()
 end
 
 function M.cancel()
@@ -29,7 +43,7 @@ function M.cancel()
     return util.notify("nothing in flight")
   end
   active:kill(15)
-  active = nil
+  M.track(nil)
 end
 
 local function register_commands()
