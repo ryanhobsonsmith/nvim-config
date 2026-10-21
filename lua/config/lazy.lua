@@ -49,7 +49,6 @@ if vim.fn.executable("node") == 1 then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.typescript.biome" })
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.tailwind" })
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot" })
-  table.insert(spec, { import = "lazyvim.plugins.extras.ai.avante" })
 end
 
 if vim.fn.executable("cc") == 1 or vim.fn.executable("gcc") == 1 or vim.fn.executable("clang") == 1 then

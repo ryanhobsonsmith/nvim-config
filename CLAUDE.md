@@ -31,7 +31,7 @@ Extras are configured **programmatically in `lua/config/lazy.lua`**, NOT in `laz
 - **Conditional on `vim.fn.executable()` checks**:
   - `go` → `lang.go`
   - `python3` → `lang.python`
-  - `node` → `lang.typescript`, `lang.tailwind`, `ai.copilot`, `ai.avante`
+  - `node` → `lang.typescript`, `lang.tailwind`, `ai.copilot`
   - `cc` / `gcc` / `clang` → `lang.clangd` (C/C++)
   - `docker` → `lang.docker`
   - `psql` / `mysql` / `sqlite3` → `lang.sql`
@@ -80,6 +80,9 @@ clangd_extensions completion scoring.
 
 On top of the extra, this config adds:
 
+- **System clangd on arm64 Linux** (`lua/plugins/lsp.lua`): mason's clangd has no
+  `linux_arm64` build, so there `servers.clangd.mason = false` and clangd comes from the
+  distro (`sudo apt install clangd`). Without it C buffers just get no LSP.
 - **Formatting** (`lua/plugins/conform.lua`): `clang_format` for `c`/`cpp`, run on save.
   `clang-format` ships with the LLVM/clang package; on a gcc-only machine install it with
   `:MasonInstall clang-format`. Respects a project `.clang-format`, else LLVM style.
@@ -369,12 +372,14 @@ environment (`GHOSTTY`, `TMUX`, `SSH`, `KITTY`, ...).
 
 ## AI Tooling
 
-Three AI assistants coexist with distinct keymap prefixes to avoid collisions:
+AI assistants coexist with distinct keymap prefixes to avoid collisions:
 
 - **Copilot** (`lua/plugins/copilot.lua`) — disabled at startup; `:Copilot enable` to turn on. Tab-completion agent, not chat.
-- **Avante** (`lua/plugins/avante.lua`, `<leader>a` prefix) — Cursor-style inline edits and sidebar chat. Configured providers: `lmstudio` (OpenAI-compatible at `http://127.0.0.1:1234/v1`, default), `copilot`, and a couple of `ollama-*` variants. Switch with `:AvanteSwitchProvider`. Each provider has a hardcoded default model; override via `providers.<name>.model`. Note: Avante's `setup()` eagerly initializes the configured provider — picking `copilot` as default would throw on machines that haven't run `:Copilot auth` (no `~/.config/github-copilot/{hosts,apps}.json`) and abort the whole plugin's config, which is why the default is the always-reachable local one. **Build:** the extra's `build = "make"` compiles avante's Rust libraries from source and requires cargo (rustup via Homebrew; keg-only, PATH set in `.zshrc`). Don't switch to the prebuilt-binary path (`build.sh`): the published macOS artifacts are built on Nix CI and link `/nix/store/...` dylibs that don't exist on a normal Mac (`dlopen` fails; untracked upstream as of Aug 2026).
 - **Claude Code** (`lua/plugins/claudecode.lua`, `<leader>C` prefix) — `coder/claudecode.nvim` (community plugin, implements Claude Code's IDE protocol; Anthropic has no first-party Neovim plugin).
+- **Quill AI** (`lua/quill-ai/`) — commands only, see above.
 
-### render-markdown for AI sidebars
-
-`render-markdown.nvim` only renders filetypes in its `file_types` table (defaults to `{"markdown"}`). Add AI sidebar filetypes (e.g. `"Avante"`) to get headings, lists, and syntax-highlighted code blocks. Code block highlighting requires the target language's Tree-sitter parser installed (`:TSInstall <lang>`).
+Avante (`ai.avante` extra) was removed on 2026-10-21: unused, and v0.4.3 added a
+`mega.cmdparse` dependency declared only in its rockspec, which errored at startup on a
+machine without luarocks. If it comes back, add `ColinKennedy/mega.cmdparse` (with
+`ColinKennedy/mega.logging`) as explicit `dependencies`, and add `"Avante"` to
+render-markdown's `file_types` for sidebar rendering.

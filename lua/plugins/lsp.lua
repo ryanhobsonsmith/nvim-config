@@ -28,4 +28,17 @@ return {
       },
     },
   },
+  -- mason's clangd package has no Linux arm64 build, so there the lang.clangd
+  -- extra's install fails ("The current platform is unsupported") on every
+  -- file open. Use the system clangd instead (`apt install clangd`). Only
+  -- touches clangd when the extra (gated on a compiler) already added it.
+  {
+    "neovim/nvim-lspconfig",
+    opts = function(_, opts)
+      if opts.servers.clangd and jit.os == "Linux" and jit.arch == "arm64" then
+        opts.servers.clangd.mason = false
+      end
+      return opts
+    end,
+  },
 }
