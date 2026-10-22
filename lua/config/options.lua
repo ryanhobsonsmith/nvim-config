@@ -55,14 +55,24 @@ if vim.env.TMUX then
 end
 
 -- Branch on platform: pbcopy/pbpaste on macOS (bypasses the terminal escape
--- chain entirely — reliable in tmux popups and nested panes), OSC 52
--- everywhere else (the only path that can reach the local clipboard from a
--- Linux host or over SSH). See CLAUDE.md "Clipboard provider" for the full
--- rationale.
+-- chain entirely — reliable in tmux popups and nested panes). Everywhere else
+-- (in practice: SSH into a Linux box), copy is OSC 52, the only path that can
+-- reach the local clipboard, and paste returns nvim's own last yank instead of
+-- querying the terminal: an OSC 52 read stalls every `p` for up to 10s when
+-- nothing answers it, and bare Ghostty prompts on each one. Bring outside text
+-- in with the terminal's paste (Cmd+V). See CLAUDE.md "Clipboard provider" for
+-- the full rationale.
 --
 -- Previously branched on SSH_CONNECTION, but that env var doesn't propagate
 -- into pre-existing tmux sessions on reattach, so nvim inside tmux saw the
 -- local branch and tried pbcopy on Linux.
+--
+-- getreg(..., 1, true) keeps leading/trailing blank lines that split() drops,
+-- and the provider only accepts a one-char regtype ("\22", not "\22" .. width).
+local function register_paste()
+  return { vim.fn.getreg('"', 1, true), vim.fn.getregtype('"'):sub(1, 1) }
+end
+
 vim.g.clipboard = vim.fn.has("mac") == 1
     and {
       name = "pbcopy/pbpaste (macOS)",
@@ -76,13 +86,18 @@ vim.g.clipboard = vim.fn.has("mac") == 1
       },
     }
   or {
-    name = "OSC 52",
+    name = "OSC 52 copy + register paste",
     copy = {
       ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
       ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
     },
     paste = {
-      ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
-      ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+      ["+"] = register_paste,
+      ["*"] = register_paste,
     },
   }
+
+-- LazyVim leaves 'clipboard' empty when SSH_CONNECTION is set, so over SSH a
+-- plain y/d never reached the + register (or the OSC 52 provider above) and
+-- only explicit "+y copied to the host. Force it on everywhere.
+vim.opt.clipboard = "unnamedplus"

@@ -297,7 +297,7 @@ Returning nothing from an `opts` function wipes out merged defaults from other s
 Configured in `lua/config/options.lua`, branched on `vim.fn.has("mac")`:
 
 - **macOS**: `pbcopy` / `pbpaste` for both `+` and `*`.
-- **Everywhere else (Linux local, any SSH)**: OSC 52 for both copy and paste via `vim.ui.clipboard.osc52`.
+- **Everywhere else (Linux local, any SSH)**: OSC 52 copy via `vim.ui.clipboard.osc52`; paste returns nvim's own unnamed register (`register_paste`), never querying the terminal.
 
 **Why platform and not SSH state:**
 
@@ -305,18 +305,19 @@ An earlier version branched on `vim.env.SSH_CONNECTION`. That variable doesn't s
 
 **Why branch instead of a single provider:**
 
-LazyVim sets `clipboard=unnamedplus`, so every `y`/`d`/`p` goes through the `+` register — the provider runs on every cursor-adjacent edit, not just explicit `"+y`/`"+p`. That makes the provider's reliability a hot path.
+`clipboard=unnamedplus` (set in `options.lua`; LazyVim only sets it when `SSH_CONNECTION` is unset, which broke plain `y` over SSH), so every `y`/`d`/`p` goes through the `+` register — the provider runs on every cursor-adjacent edit, not just explicit `"+y`/`"+p`. That makes the provider's reliability a hot path.
 
 A previous config was also asymmetric: OSC 52 copy + `pbpaste` paste. OSC 52 copy travels nvim → tmux → outer terminal → system clipboard via an escape sequence; `pbpaste` reads the macOS clipboard directly. When any link in the escape chain drops the sequence (notably tmux `display-popup`, which runs in a separate client context and relays OSC 52 less reliably than regular panes), copy silently no-ops while paste still reads the real clipboard. Result: `dd` then `p` pastes stale clipboard content instead of the just-yanked line.
 
 **Why this split works:**
 
 - On macOS, `pbcopy`/`pbpaste` bypass the terminal entirely — popups, nested tmux, ghostty quirks all become irrelevant. Both directions hit the same macOS pasteboard.
-- On Linux or over SSH, `pbcopy` doesn't exist (or would touch the wrong clipboard on a remote host). OSC 52 is the only mechanism that can traverse the terminal/SSH pipe back to whichever terminal is rendering nvim. Using it for both directions keeps copy and paste symmetric — whatever the escape chain delivers for copy is what paste queries for.
+- On Linux or over SSH, `pbcopy` doesn't exist (or would touch the wrong clipboard on a remote host). OSC 52 is the only mechanism that can traverse the terminal/SSH pipe back to whichever terminal is rendering nvim, so copy uses it.
+- Paste stays inside nvim. An OSC 52 *read* blocks `p` (1s, then "Waiting for OSC 52 response…", up to 10s) whenever nothing answers: bare Ghostty prompts on every read (`clipboard-read = ask`), tmux with `get-clipboard off` ignores it, and an early version of this config hit exactly that hang. Even when tmux does answer (`get-clipboard buffer`), it only returns tmux's newest paste buffer, never text copied on the host. Returning the unnamed register is instant and always holds the last yank, even if the OSC 52 copy got dropped somewhere, so the stale-paste failure above can't happen either. Outside text comes in via terminal paste (Cmd+V / Ctrl+Shift+V) or tmux `prefix+]`.
+- `register_paste` uses `getreg('"', 1, true)` (a list; `split()` drops leading/trailing blank lines) and only the first char of `getregtype()`: blockwise is `"\22" .. width`, and nvim rejects a multi-char regtype with "clipboard: provider returned invalid data".
 
 **Caveats:**
 
-- OSC 52 paste requires terminal OSC 52 *read* support. Ghostty supports it; tmux 3.4+ relays it. Older tmux may hang the paste query — if that becomes an issue, drop the `paste` branch on the non-mac side and rely on terminal paste (Cmd+V / Ctrl+Shift+V) for bringing outside text into nvim.
 - Nested SSH hops need OSC 52 pass-through at each layer.
 
 ## Snippets
